@@ -7,7 +7,7 @@ Giao diện demo quản lý quán **Gỗ Coffee**, xây dựng bằng ASP.NET Co
 Cài .NET 10 SDK, mở terminal tại thư mục gốc dự án và chạy:
 
 ```powershell
-dotnet run --project CuaHangTienLoi.Web/CuaHangTienLoi.Web.csproj
+dotnet run --project "Gỗ Coffee/CuaHangTienLoi.Web.csproj"
 ```
 
 Mở địa chỉ localhost được hiển thị trong terminal. Ở màn hình đăng nhập, tài khoản demo là `admin@moc.coffee`; mật khẩu có thể là bất kỳ giá trị nào.
