@@ -1,0 +1,39 @@
+@page "/"
+@page "/dashboard"
+@rendermode InteractiveServer
+@using System.Globalization
+@inject NavigationManager Navigation
+
+<PageTitle>Tổng quan · Gỗ Coffee</PageTitle>
+<div class="page-heading"><div><div class="eyebrow">THỨ TƯ, 24 THÁNG 9, 2026 <span class="eyebrow-dot"></span> CA SÁNG</div><h1>Chào buổi sáng, Anh Duy <span class="wave">✳</span></h1><p>Đây là tình hình cửa hàng của bạn hôm nay.</p></div><button class="button button-outline" @onclick="GoReports">↧ <span>Tải báo cáo</span></button></div>
+
+<div class="stat-grid">
+    <article class="stat-card"><div class="stat-top"><span>Doanh thu hôm nay</span><span class="stat-icon sand">₫</span></div><div class="stat-number">@Money(_salesAdjustment + 8_450_000)</div><div class="stat-foot"><span class="trend-up">↗ 12,8%</span><span>so với hôm qua</span><svg viewBox="0 0 110 32" class="sparkline"><path d="M1 27 Q12 24 18 22 T34 23 T49 15 T64 18 T78 9 T93 13 T109 3" /></svg></div></article>
+    <article class="stat-card"><div class="stat-top"><span>Đơn hàng</span><span class="stat-icon lilac">▤</span></div><div class="stat-number">148 <small>đơn</small></div><div class="stat-foot"><span class="trend-up">↗ 8,2%</span><span>so với hôm qua</span><svg viewBox="0 0 110 32" class="sparkline"><path d="M1 25 Q14 23 21 26 T36 15 T51 18 T68 12 T81 15 T97 6 T109 8" /></svg></div></article>
+    <article class="stat-card"><div class="stat-top"><span>Giá trị trung bình</span><span class="stat-icon peach">⌁</span></div><div class="stat-number">57.095 <small>₫ / đơn</small></div><div class="stat-foot"><span class="trend-up">↗ 4,1%</span><span>so với tuần trước</span><svg viewBox="0 0 110 32" class="sparkline"><path d="M1 23 Q12 26 22 19 T38 21 T54 12 T68 17 T84 8 T96 12 T109 4" /></svg></div></article>
+    <article class="stat-card"><div class="stat-top"><span>Món bán chạy nhất</span><span class="stat-icon mint">✳</span></div><div class="stat-number item-stat">Bạc xỉu <small>42 ly</small></div><div class="stat-foot"><span class="category-tag">Cà phê sữa</span><span>đứng đầu hôm nay</span><svg viewBox="0 0 110 32" class="sparkline"><path d="M1 28 Q12 25 23 23 T39 21 T52 15 T67 17 T82 10 T96 10 T109 2" /></svg></div></article>
+</div>
+
+<div class="dashboard-grid">
+    <section class="surface revenue-panel"><div class="surface-heading"><div><h2>Doanh thu</h2><p>Hiệu suất kinh doanh theo thời gian</p></div><select class="select-control" @bind="_period"><option>7 ngày qua</option><option>30 ngày qua</option><option>12 tháng qua</option></select></div>
+        <div class="chart-legend"><span><i class="legend-dot"></i> Tuần này</span><span><i class="legend-dot muted-dot"></i> Tuần trước</span><b>12,8% <small>so với kỳ trước</small></b></div>
+        <div class="chart-wrap"><div class="chart-y"><span>12 tr</span><span>9 tr</span><span>6 tr</span><span>3 tr</span><span>0</span></div><svg class="revenue-chart" viewBox="0 0 700 225" preserveAspectRatio="none" role="img" aria-label="Biểu đồ doanh thu trong bảy ngày qua"><defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#326750" stop-opacity=".16"/><stop offset="100%" stop-color="#326750" stop-opacity="0"/></linearGradient></defs><path class="gridline" d="M0 13H700M0 61H700M0 109H700M0 157H700M0 205H700"/><path class="chart-prior" d="M0 164 C40 152 51 172 98 146 S160 155 198 124 S257 155 298 113 S360 137 397 94 S454 118 498 106 S555 120 599 72 S653 106 700 54"/><path class="chart-area" d="M0 133 C45 116 62 145 103 103 S166 122 202 82 S258 108 300 71 S350 90 397 51 S461 86 499 59 S552 80 600 32 S652 56 700 14 L700 205 L0 205 Z"/><path class="chart-current" d="M0 133 C45 116 62 145 103 103 S166 122 202 82 S258 108 300 71 S350 90 397 51 S461 86 499 59 S552 80 600 32 S652 56 700 14"/><circle class="chart-point" cx="397" cy="51" r="5"/><circle class="chart-point halo" cx="397" cy="51" r="10"/></svg></div>
+        <div class="chart-x"><span>Thứ Năm</span><span>Thứ Sáu</span><span>Thứ Bảy</span><span>Chủ nhật</span><span>Thứ Hai</span><span>Thứ Ba</span><span>Thứ Tư</span></div>
+        <div class="chart-summary"><div><small>DOANH THU TUẦN NÀY</small><b>48.250.000 <i>₫</i></b></div><div><small>TRUNG BÌNH / NGÀY</small><b>6.892.857 <i>₫</i></b></div><div><small>NGÀY CAO NHẤT</small><b>Thứ Bảy <i>· 9,8 tr</i></b></div></div>
+    </section>
+    <section class="surface orders-panel"><div class="surface-heading"><div><h2>Đơn hàng gần đây</h2><p>Theo dõi hoạt động mới nhất</p></div><a class="text-link" href="/orders">Tất cả <span>→</span></a></div><div class="order-list"><div class="order-row order-head"><span>MÃ ĐƠN</span><span>KHÁCH HÀNG</span><span>TỔNG CỘNG</span><span>TRẠNG THÁI</span></div>
+        @foreach(var order in RecentOrders){<div class="order-row"><span class="order-id">@order.Id</span><span class="customer-cell"><i class="customer-avatar @order.Tone">@order.Initials</i>@order.Name</span><span class="order-total">@Money(order.Total)</span><span class="status @order.StatusClass">@order.Status</span></div>}
+    </div><a class="all-orders-link" href="/orders">Xem tất cả đơn hàng <span>→</span></a></section>
+</div>
+<div class="bottom-grid"><section class="surface popularity-panel"><div class="surface-heading"><div><h2>Món được yêu thích</h2><p>Top món bán chạy hôm nay</p></div><a class="text-link" href="/products">Thực đơn <span>→</span></a></div><div class="popular-list">
+@foreach(var drink in Drinks){<div class="popular-item"><div class="drink-thumb @drink.Tone">@drink.Icon</div><div class="popular-copy"><b>@drink.Name</b><small>@drink.Category</small></div><span class="popular-count">@drink.Count <small>ly</small></span><div class="progress-track"><div class="progress-fill" style="width:@drink.Width%"></div></div><b class="popular-sales">@Money(drink.Sales)</b></div>}
+</div></section>
+<section class="surface activity-panel"><div class="surface-heading"><div><h2>Hoạt động trong ca</h2><p>Những gì đang diễn ra tại cửa hàng</p></div><span class="live-indicator"><i></i> TRỰC TIẾP</span></div><div class="activity-list"><div class="activity-item"><div class="activity-icon activity-order">✓</div><div><b>Đơn #DH-0248 đã hoàn tất</b><small>Nguyễn Hà Linh · 2 phút trước</small></div><span class="activity-money">+ 96.000 ₫</span></div><div class="activity-item"><div class="activity-icon activity-stock">!</div><div><b>Sắp hết nguyên liệu: Sữa tươi</b><small>Kho còn 2,4 lít · 14 phút trước</small></div><a class="activity-action" href="/inventory">Kiểm tra →</a></div><div class="activity-item"><div class="activity-icon activity-order">✓</div><div><b>Đơn #DH-0247 đã hoàn tất</b><small>Phạm Quốc Bảo · 21 phút trước</small></div><span class="activity-money">+ 125.000 ₫</span></div></div></section></div>
+
+@code {
+private string _period="7 ngày qua"; private int _salesAdjustment=0; private void GoReports()=>Navigation.NavigateTo("/reports"); private static string Money(int value)=>value.ToString("N0",CultureInfo.GetCultureInfo("vi-VN"))+" ₫";
+private record RecentOrder(string Id,string Name,string Initials,int Total,string Status,string StatusClass,string Tone);
+private record Drink(string Name,string Category,string Icon,int Count,int Width,int Sales,string Tone);
+private static readonly RecentOrder[] RecentOrders=[new("#DH-0248","Nguyễn Hà Linh","NL",96000,"Hoàn tất","status-done","tone-sage"),new("#DH-0247","Phạm Quốc Bảo","QB",125000,"Hoàn tất","status-done","tone-lavender"),new("#DH-0246","Đơn tại quầy","TQ",78000,"Đang pha chế","status-making","tone-peach"),new("#DH-0245","Trần Thu Hà","TH",154000,"Hoàn tất","status-done","tone-yellow")];
+private static readonly Drink[] Drinks=[new("Bạc xỉu","CÀ PHÊ SỮA","☕",42,100,2100000,"drink-coffee"),new("Latte kem muối","LATTE","☁",36,78,2520000,"drink-latte"),new("Cold brew cam","COLD BREW","◉",28,60,1960000,"drink-cold"),new("Trà đào cam sả","TRÀ TRÁI CÂY","♨",21,44,1470000,"drink-tea")];
+}

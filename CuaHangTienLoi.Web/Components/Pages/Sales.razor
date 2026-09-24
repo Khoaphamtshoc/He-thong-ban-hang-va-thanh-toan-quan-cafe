@@ -1,0 +1,66 @@
+@page "/sales"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components
+@using System.Globalization
+@inject NavigationManager Navigation
+@implements IDisposable
+<PageTitle>Bán hàng · mộc. Coffee</PageTitle>
+<div class="page-heading sale-heading"><div><div class="eyebrow">BÁN HÀNG <span class="eyebrow-dot"></span> QUẦY THU NGÂN</div><h1>Đơn hàng mới <span class="order-live-pill">Bàn 04 <i></i></span></h1><p>Chọn món yêu thích và tạo đơn hàng cho khách.</p></div><button class="button button-outline" @onclick="ResetCart">↻ <span>Làm mới đơn</span></button></div>
+<div class="sales-layout"><div class="catalogue"><div class="search-box"><span>⌕</span><input placeholder="Tìm món theo tên..." @bind="_query" @bind:event="oninput" /><kbd>⌘ K</kbd></div><div class="category-tabs"><button class="@( _category=="Tất cả"?"category-active":"")" @onclick='()=>ChooseCategory("Tất cả")'>Tất cả <small>12</small></button><button class="@( _category=="Cà phê"?"category-active":"")" @onclick='()=>ChooseCategory("Cà phê")'>☕ Cà phê</button><button class="@( _category=="Trà"?"category-active":"")" @onclick='()=>ChooseCategory("Trà")'>🍃 Trà</button><button class="@( _category=="Đá xay"?"category-active":"")" @onclick='()=>ChooseCategory("Đá xay")'>❄ Đá xay</button><button class="@( _category=="Bánh"?"category-active":"")" @onclick='()=>ChooseCategory("Bánh")'>♨ Bánh ngọt</button></div>
+<div class="product-grid">@foreach(var product in VisibleProducts){<button class="product-card" @onclick="()=>AddItem(product)"><span class="product-art @product.ArtClass"><span class="product-emoji">@product.Icon</span>@if(product.Badge is not null){<i class="product-badge">@product.Badge</i>}<span class="add-product">＋</span></span><span class="product-details"><b>@product.Name</b><small>@product.Category</small><strong>@Money(product.Price)</strong></span></button>}</div></div>
+<aside class="cart-panel"><div class="cart-heading"><div><h2>Đơn hàng</h2><p>Bàn 04 <span>·</span> Khách tại quán</p></div><button class="cart-clear" title="Xóa toàn bộ đơn" @onclick="ResetCart">⌫</button></div><div class="customer-select"><div class="customer-icon">♙</div><div><small>KHÁCH HÀNG</small><b>Khách lẻ</b></div><button aria-label="Chọn khách hàng">⌄</button></div><div class="cart-items">@if(_cart.Count==0){<div class="empty-cart"><span>☕</span><b>Chưa có món nào</b><p>Chọn món từ thực đơn để bắt đầu.</p></div>} else { @foreach(var entry in _cart){<div class="cart-item"><div class="cart-item-art @entry.Product.ArtClass">@entry.Product.Icon</div><div class="cart-item-main"><b>@entry.Product.Name</b><small>@Money(entry.Product.Price)</small><div class="quantity-control"><button @onclick="()=>ChangeQty(entry.Product,-1)">−</button><span>@entry.Quantity</span><button @onclick="()=>ChangeQty(entry.Product,1)">＋</button></div></div><b class="cart-line-total">@Money(entry.Product.Price*entry.Quantity)</b></div>}}</div><button class="add-note" @onclick="ToggleNote">＋ Thêm ghi chú đơn hàng</button>@if(_showNote){<textarea class="note-input" placeholder="Ví dụ: ít đá, không đường..." @bind="_note"></textarea>}<div class="cart-totals"><div><span>Tạm tính</span><b>@Money(Subtotal)</b></div><div><span>Thuế VAT <small>(8%)</small></span><b>@Money(Vat)</b></div><div><span>Giảm giá <button class="discount-link" @onclick="()=>_discount=_discount==0?10000:0">@(_discount==0?"+ Thêm":"↻ Bỏ")</button></span><b class="discount-value">−@Money(_discount)</b></div><hr /><div class="cart-grand"><span>Tổng cộng</span><b>@Money(Total)</b></div></div><button class="button button-primary pay-button" disabled="@(_cart.Count==0)" @onclick="ShowCheckout">Tiến hành thanh toán <span>→</span></button><div class="cart-shortcut">Nhấn <kbd>F4</kbd> để thanh toán nhanh</div></aside></div>
+@if (_checkout)
+{
+    <div class="modal-backdrop" @onclick="CloseCheckout">
+        <section class="checkout-modal" @onclick:stopPropagation="true">
+            <button class="modal-close" @onclick="CloseCheckout">×</button>
+            @if (!_completed)
+            {
+                <div class="checkout-symbol">₫</div>
+                <div class="eyebrow">XÁC NHẬN THANH TOÁN</div>
+                <h2>Hoàn tất đơn hàng</h2>
+                <p>Đơn bàn 04 · @_cart.Sum(x => x.Quantity) món</p>
+                <div class="checkout-total"><span>Khách cần thanh toán</span><b>@Money(Total)</b></div>
+                <label class="payment-label">PHƯƠNG THỨC THANH TOÁN</label>
+                <div class="payment-options">
+                    <button class='payment-option @(PaymentClass("Tiền mặt"))' @onclick='() => SetPayment("Tiền mặt")'>💵 <span>Tiền mặt</span>@if (_payment == "Tiền mặt") { <i>✓</i> }</button>
+                    <button class='payment-option @(PaymentClass("Chuyển khoản"))' @onclick='() => SetPayment("Chuyển khoản")'>▦ <span>Chuyển khoản</span>@if (_payment == "Chuyển khoản") { <i>✓</i> }</button>
+                    <button class='payment-option @(PaymentClass("Thẻ"))' @onclick='() => SetPayment("Thẻ")'>▤ <span>Thẻ ngân hàng</span>@if (_payment == "Thẻ") { <i>✓</i> }</button>
+                </div>
+                <button class="button button-primary confirm-button" @onclick="CompleteOrder">Xác nhận thanh toán · @Money(Total)</button>
+                <small class="secure-note">♙ Giao dịch được ghi nhận an toàn trong hệ thống</small>
+            }
+            else
+            {
+                <div class="success-check">✓</div>
+                <div class="eyebrow">THANH TOÁN THÀNH CÔNG</div>
+                <h2>Cảm ơn bạn!</h2>
+                <p>Đơn <b>#DH-0249</b> đã được hoàn tất.</p>
+                <div class="checkout-total"><span>Đã thanh toán qua @_payment</span><b>@Money(_completedTotal)</b></div>
+                <button class="button button-primary confirm-button" @onclick="FinishOrder">Tạo đơn hàng mới <span>→</span></button>
+                <a class="success-orders-link" href="/orders">Xem danh sách đơn hàng</a>
+            }
+        </section>
+    </div>
+}
+@code {
+private string _query="",_category="Tất cả",_payment="Tiền mặt",_note=""; private bool _checkout,_completed,_showNote; private int _discount; private int _completedTotal;
+private List<CartItem> _cart=[new(Products[0],1),new(Products[4],1)];
+private static string Money(int value)=>value.ToString("N0",CultureInfo.GetCultureInfo("vi-VN"))+" ₫";
+private int Subtotal=>_cart.Sum(x=>x.Product.Price*x.Quantity); private int Vat=>(int)Math.Round(Subtotal*.08); private int Total=>Math.Max(0,Subtotal+Vat-_discount);
+private IEnumerable<Product> VisibleProducts=>Products.Where(p=>(_category=="Tất cả"||p.Category==_category)&&p.Name.Contains(_query,StringComparison.CurrentCultureIgnoreCase));
+private static readonly Product[] Products=[new("Bạc xỉu","Cà phê",49000,"☕","art-bac","BÁN CHẠY"),new("Cà phê sữa đá","Cà phê",39000,"🧋","art-latte",null),new("Espresso","Cà phê",35000,"☕","art-espresso",null),new("Latte kem muối","Cà phê",70000,"🥛","art-salt","MỚI"),new("Trà đào cam sả","Trà",55000,"🍑","art-peach",null),new("Cold brew cam","Cà phê",70000,"🍊","art-orange",null),new("Matcha latte","Trà",65000,"🍵","art-matcha",null),new("Trà ô long vải","Trà",59000,"🫖","art-tea",null),new("Matcha đá xay","Đá xay",68000,"🍵","art-matcha",null),new("Chocolate đá xay","Đá xay",69000,"🍫","art-choco",null),new("Croissant bơ","Bánh",38000,"🥐","art-croissant",null),new("Tiramisu","Bánh",52000,"🍰","art-cake",null)];
+private sealed class CartItem(Product product,int quantity){public Product Product{get;}=product;public int Quantity{get;set;}=quantity;}
+private sealed record Product(string Name,string Category,int Price,string Icon,string ArtClass,string? Badge);
+private void ChooseCategory(string value)=>_category=value;
+private void AddItem(Product product){var item=_cart.FirstOrDefault(x=>x.Product==product);if(item is null)_cart.Add(new(product,1));else item.Quantity++;}
+private void ChangeQty(Product product,int amount){var item=_cart.FirstOrDefault(x=>x.Product==product);if(item is null)return;item.Quantity+=amount;if(item.Quantity<=0)_cart.Remove(item);}
+private void ToggleNote()=>_showNote=!_showNote; private void ResetCart(){_cart.Clear();_discount=0;_note="";_showNote=false;}
+private void ShowCheckout(){if(_cart.Count>0)_checkout=true;} private void CloseCheckout()=>_checkout=false;
+private string PaymentClass(string method)=>_payment==method?"payment-selected":""; private void SetPayment(string method)=>_payment=method;
+private void CompleteOrder(){_completedTotal=Total;_completed=true;}
+private void FinishOrder(){_checkout=false;_completed=false;_payment="Tiền mặt";ResetCart();}
+protected override void OnInitialized()=>Navigation.LocationChanged+=OnLocationChanged;
+private void OnLocationChanged(object? sender,Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e){if(new Uri(e.Location).AbsolutePath.EndsWith("/sales",StringComparison.OrdinalIgnoreCase))InvokeAsync(StateHasChanged);}
+public void Dispose()=>Navigation.LocationChanged-=OnLocationChanged;
+}
