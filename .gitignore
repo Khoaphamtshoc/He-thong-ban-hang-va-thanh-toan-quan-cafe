@@ -1,0 +1,18 @@
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+
+# Node.js
+**/node_modules/
+**/.env
+**/.env.*
+!**/.env.example
+
+# Build
+**/dist/
+**/coverage/
+
+# Logs
+*.log
