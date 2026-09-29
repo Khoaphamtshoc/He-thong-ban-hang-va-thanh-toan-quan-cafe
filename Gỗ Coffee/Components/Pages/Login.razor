@@ -57,7 +57,7 @@
             <button class="button button-primary login-button" disabled="@_isLoading" @onclick="DoLogin">
                 @if (_isLoading)
                 {
-                    <span>Đang đăng nhập...</span>
+                    <span>Đang kiểm tra...</span>
                 }
                 else
                 {
@@ -81,13 +81,13 @@
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px; width: 100%;">
                     <button type="button" class="button button-outline" style="height: 26px; padding: 0 8px; font-size: 9px;" @onclick='() => SetDemo("admin@moc.coffee", "Admin@123")'>
-                        👑 Quản lý (Admin)
+                        Quản lý (Admin)
                     </button>
                     <button type="button" class="button button-outline" style="height: 26px; padding: 0 8px; font-size: 9px;" @onclick='() => SetDemo("staff@moc.coffee", "Staff@123")'>
-                        ☕ Thu ngân (Staff)
+                        Thu ngân (Staff)
                     </button>
                     <button type="button" class="button button-outline" style="height: 26px; padding: 0 8px; font-size: 9px;" @onclick='() => SetDemo("kho@moc.coffee", "Kho@123")'>
-                        📦 Thủ kho (Warehouse)
+                        Thủ kho (Warehouse)
                     </button>
                 </div>
             </div>
@@ -139,7 +139,7 @@
             }
             else
             {
-                _errorMessage = "Thông tin đăng nhập không hợp lệ. Vui lòng thử lại.";
+                _errorMessage = "Thông tin đăng nhập không hợp lệ hoặc tài khoản đã bị khóa.";
             }
         }
         catch (Exception ex)
