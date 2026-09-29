@@ -2,6 +2,153 @@
 @layout EmptyLayout
 @rendermode InteractiveServer
 @inject NavigationManager Navigation
+@inject AuthService AuthService
+@inject StoreSession Session
+
 <PageTitle>Đăng nhập · Gỗ Coffee</PageTitle>
-<div class="login-shell"><section class="login-visual"><a class="brand login-brand" href="/dashboard"><span class="brand-mark">☕</span><span><b>Gỗ</b><small>COFFEE</small></span></a><div class="login-image"><div class="login-blur blur-one"></div><div class="login-blur blur-two"></div><div class="login-art-center"><div class="login-cup">☕</div><span class="login-flower">✳</span></div><div class="image-caption"><i></i> A GOOD DAY STARTS HERE</div></div><div class="login-quote"><span>“</span><p>Cà phê ngon bắt đầu<br/>từ những điều giản dị.</p><small>GÓC NHỎ CỦA GỖ.</small></div><small class="login-copyright">© 2026 GỖ COFFEE</small></section><section class="login-form-side"><div class="login-form-wrap"><span class="login-welcome">XIN CHÀO, BẠN ☀</span><h1>Rất vui được gặp lại!</h1><p>Đăng nhập để bắt đầu một ngày làm việc thật vui nhé.</p><label class="form-label">EMAIL CỦA BẠN</label><div class="login-input-wrap"><span>✉</span><input @bind="_email" type="email" placeholder="ten@moc.coffee" /></div><label class="form-label">MẬT KHẨU <a href="#">Quên mật khẩu?</a></label><div class="login-input-wrap"><span>♙</span><input @bind="_password" type="password" placeholder="Nhập mật khẩu của bạn"/><button @onclick="()=>_showPassword=!_showPassword">◉</button></div><label class="remember-row"><input type="checkbox" @bind="_remember"/> <span>Ghi nhớ đăng nhập trên thiết bị này</span></label><button class="button button-primary login-button" @onclick="DoLogin">Đăng nhập <span>→</span></button>@if(_error){<div class="login-error">Vui lòng nhập email và mật khẩu để tiếp tục.</div>}<div class="login-help">Bạn cần hỗ trợ? <a href="mailto:hello@moc.coffee">Liên hệ đội ngũ Gỗ Coffee →</a></div><div class="demo-hint">✳ <span>Tài khoản demo: <b>admin@moc.coffee</b> · mật khẩu bất kỳ</span></div></div><div class="login-bottom">Tiếng Việt <span>·</span> Trợ giúp <span>·</span> Điều khoản sử dụng</div></section></div>
-@code{private string _email="",_password="";private bool _remember,_showPassword,_error;private void DoLogin(){if(string.IsNullOrWhiteSpace(_email)||string.IsNullOrWhiteSpace(_password)){_error=true;return;}_error=false;Navigation.NavigateTo("/dashboard");}}
+
+<div class="login-shell">
+    <section class="login-visual">
+        <a class="brand login-brand" href="/dashboard">
+            <span class="brand-mark">☕</span>
+            <span><b>Gỗ</b><small>COFFEE</small></span>
+        </a>
+        <div class="login-image">
+            <div class="login-blur blur-one"></div>
+            <div class="login-blur blur-two"></div>
+            <div class="login-art-center">
+                <div class="login-cup">☕</div>
+                <span class="login-flower">✳</span>
+            </div>
+            <div class="image-caption"><i></i> A GOOD DAY STARTS HERE</div>
+        </div>
+        <div class="login-quote">
+            <span>“</span>
+            <p>Cà phê ngon bắt đầu<br/>từ những điều giản dị.</p>
+            <small>GÓC NHỎ CỦA GỖ.</small>
+        </div>
+        <small class="login-copyright">© 2026 GỖ COFFEE</small>
+    </section>
+
+    <section class="login-form-side">
+        <div class="login-form-wrap">
+            <span class="login-welcome">XIN CHÀO, BẠN ☀</span>
+            <h1>Rất vui được gặp lại!</h1>
+            <p>Đăng nhập để bắt đầu một ngày làm việc thật vui nhé.</p>
+
+            <label class="form-label">EMAIL CỦA BẠN</label>
+            <div class="login-input-wrap">
+                <span>✉</span>
+                <input @bind="_email" type="email" placeholder="ten@moc.coffee" @onkeydown="HandleKeyDown" />
+            </div>
+
+            <label class="form-label">MẬT KHẨU <a href="#">Quên mật khẩu?</a></label>
+            <div class="login-input-wrap">
+                <span>♙</span>
+                <input @bind="_password" type="@(_showPassword ? "text" : "password")" placeholder="Nhập mật khẩu của bạn" @onkeydown="HandleKeyDown" />
+                <button type="button" @onclick="() => _showPassword = !_showPassword">@(_showPassword ? "◎" : "◉")</button>
+            </div>
+
+            <label class="remember-row">
+                <input type="checkbox" @bind="_remember" />
+                <span>Ghi nhớ đăng nhập trên thiết bị này</span>
+            </label>
+
+            <button class="button button-primary login-button" disabled="@_isLoading" @onclick="DoLogin">
+                @if (_isLoading)
+                {
+                    <span>Đang đăng nhập...</span>
+                }
+                else
+                {
+                    <span>Đăng nhập</span>
+                    <span>→</span>
+                }
+            </button>
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="login-error">@_errorMessage</div>
+            }
+
+            <div class="login-help">
+                Bạn cần hỗ trợ? <a href="mailto:hello@moc.coffee">Liên hệ đội ngũ Gỗ Coffee →</a>
+            </div>
+
+            <div class="demo-hint" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span>✳</span> <span>Chọn tài khoản demo để đăng nhập nhanh:</span>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; width: 100%;">
+                    <button type="button" class="button button-outline" style="height: 26px; padding: 0 8px; font-size: 9px;" @onclick='() => SetDemo("admin@moc.coffee", "Admin@123")'>
+                        👑 Quản lý (Admin)
+                    </button>
+                    <button type="button" class="button button-outline" style="height: 26px; padding: 0 8px; font-size: 9px;" @onclick='() => SetDemo("staff@moc.coffee", "Staff@123")'>
+                        ☕ Thu ngân (Staff)
+                    </button>
+                    <button type="button" class="button button-outline" style="height: 26px; padding: 0 8px; font-size: 9px;" @onclick='() => SetDemo("kho@moc.coffee", "Kho@123")'>
+                        📦 Thủ kho (Warehouse)
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="login-bottom">Tiếng Việt <span>·</span> Trợ giúp <span>·</span> Điều khoản sử dụng</div>
+    </section>
+</div>
+
+@code {
+    private string _email = "admin@moc.coffee";
+    private string _password = "Password@123";
+    private bool _remember = true;
+    private bool _showPassword;
+    private bool _isLoading;
+    private string? _errorMessage;
+
+    private void SetDemo(string email, string pass)
+    {
+        _email = email;
+        _password = pass;
+        _errorMessage = null;
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await DoLogin();
+        }
+    }
+
+    private async Task DoLogin()
+    {
+        if (string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))
+        {
+            _errorMessage = "Vui lòng nhập đầy đủ email và mật khẩu.";
+            return;
+        }
+
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            var success = await AuthService.LoginAsync(_email, _password);
+            if (success)
+            {
+                Navigation.NavigateTo("/dashboard");
+            }
+            else
+            {
+                _errorMessage = "Thông tin đăng nhập không hợp lệ. Vui lòng thử lại.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Đã xảy ra lỗi: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

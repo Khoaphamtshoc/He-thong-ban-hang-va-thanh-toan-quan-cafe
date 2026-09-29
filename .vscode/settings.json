@@ -1,3 +1,7 @@
 {
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "terminal.integrated.env.windows": {
+        "PATH": "C:\\Users\\chicu\\dotnet;${env:PATH}",
+        "DOTNET_ROOT": "C:\\Users\\chicu\\dotnet"
+    }
 }

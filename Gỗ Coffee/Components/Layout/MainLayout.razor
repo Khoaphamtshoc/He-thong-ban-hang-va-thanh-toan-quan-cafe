@@ -1,5 +1,7 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
+@inject StoreSession Session
+@inject AuthService AuthService
 
 <div class="app-shell">
     <aside class="sidebar">
@@ -17,19 +19,88 @@
             <a href="/reports" class="@(Active("reports") ? "active" : "")"><span>⌁</span> Doanh thu</a>
             <a href="/employees" class="@(Active("employees") ? "active" : "")"><span>♙</span> Nhân viên</a>
         </nav>
-        <div class="sidebar-bottom"><div class="help-card"><div>✳</div><b>Cần hỗ trợ?</b><p>Liên hệ đội ngũ Gỗ Coffee bất cứ lúc nào.</p><a href="mailto:hello@moc.coffee">Liên hệ hỗ trợ ↗</a></div>
-            <div class="profile"><div class="avatar">AD</div><div class="profile-info"><b>Anh Duy</b><small>Quản lý cửa hàng</small></div><button class="icon-button" title="Đăng xuất" @onclick="Logout">↗</button></div>
+        <div class="sidebar-bottom">
+            <div class="help-card">
+                <div>✳</div>
+                <b>Cần hỗ trợ?</b>
+                <p>Liên hệ đội ngũ Gỗ Coffee bất cứ lúc nào.</p>
+                <a href="mailto:hello@moc.coffee">Liên hệ hỗ trợ ↗</a>
+            </div>
+            @if (Session.IsAuthenticated)
+            {
+                <div class="profile">
+                    <div class="avatar" title="@Session.DisplayName">@Session.Initials</div>
+                    <div class="profile-info" style="min-width: 0; overflow: hidden;">
+                        <b style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">@Session.DisplayName</b>
+                        <small style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">@Session.RoleName</small>
+                    </div>
+                    <button class="icon-button" title="Đăng xuất khỏi hệ thống" @onclick="HandleLogout">
+                        ⎋
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="profile">
+                    <div class="avatar" style="background:#edf2ed; color:#40684f;">👤</div>
+                    <div class="profile-info">
+                        <b>Chưa đăng nhập</b>
+                        <small><a href="/login" style="color:#355e49; font-weight:600;">Đăng nhập ngay →</a></small>
+                    </div>
+                    <a href="/login" class="icon-button" title="Đăng nhập" style="display:grid;place-items:center;">
+                        →
+                    </a>
+                </div>
+            }
         </div>
     </aside>
     <main class="main-area">
-        <header class="topbar"><div class="breadcrumbs">Cửa hàng <span>/</span> <b>@PageName</b></div><div class="top-actions"><span class="open-status"><i></i> Đang mở cửa</span><span class="top-divider"></span><span class="today">Thứ Tư, 24 Tháng 9, 2026</span><button class="top-icon" aria-label="Thông báo">♧<i></i></button><div class="avatar top-avatar">AD</div></div></header>
+        <header class="topbar">
+            <div class="breadcrumbs">Cửa hàng <span>/</span> <b>@PageName</b></div>
+            <div class="top-actions">
+                <span class="open-status"><i></i> Đang mở cửa</span>
+                <span class="top-divider"></span>
+                <span class="today">@DateTime.Now.ToString("dddd, dd/MM/yyyy", new System.Globalization.CultureInfo("vi-VN"))</span>
+                <button class="top-icon" aria-label="Thông báo">♧<i></i></button>
+                @if (Session.IsAuthenticated)
+                {
+                    <div class="avatar top-avatar" title="@Session.DisplayName (@Session.RoleName)">@Session.Initials</div>
+                    <button class="button button-outline" style="height: 26px; padding: 0 9px; font-size: 9px; gap: 4px;" title="Đăng xuất" @onclick="HandleLogout">
+                        <span>Đăng xuất</span> ⎋
+                    </button>
+                }
+                else
+                {
+                    <a href="/login" class="button button-primary" style="height: 26px; padding: 0 10px; font-size: 9px;">
+                        Đăng nhập
+                    </a>
+                }
+            </div>
+        </header>
         <section class="page-content">@Body</section>
     </main>
 </div>
 <div id="blazor-error-ui">Có lỗi xảy ra. <a href="." class="reload">Tải lại</a></div>
+
 @code {
     private string Path => Navigation.ToBaseRelativePath(Navigation.Uri).Split('?')[0].Trim('/').ToLowerInvariant();
     private bool Active(string route) => Path == route || (route == "dashboard" && Path == "");
-    private string PageName => Path switch { "" or "dashboard" => "Tổng quan", "sales" => "Bán hàng", "orders" => "Đơn hàng", "products" => "Thực đơn", "inventory" => "Kho nguyên liệu", "reports" => "Doanh thu", "employees" => "Nhân viên", "login" => "Đăng nhập", _ => "Tổng quan" };
-    private void Logout() => Navigation.NavigateTo("/login");
+    private string PageName => Path switch
+    {
+        "" or "dashboard" => "Tổng quan",
+        "sales" => "Bán hàng",
+        "orders" => "Đơn hàng",
+        "products" => "Thực đơn",
+        "inventory" => "Kho nguyên liệu",
+        "reports" => "Doanh thu",
+        "employees" => "Nhân viên",
+        "login" => "Đăng nhập",
+        _ => "Tổng quan"
+    };
+
+    private void HandleLogout()
+    {
+        AuthService.Logout();
+        Navigation.NavigateTo("/login");
+    }
 }

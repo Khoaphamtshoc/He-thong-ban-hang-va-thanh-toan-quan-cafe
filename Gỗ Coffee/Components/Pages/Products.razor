@@ -1,14 +1,425 @@
 @page "/products"
 @rendermode InteractiveServer
 @using System.Globalization
+
 <PageTitle>Thực đơn · mộc. Coffee</PageTitle>
-<div class="page-heading"><div><div class="eyebrow">QUẢN LÝ <span class="eyebrow-dot"></span> THỰC ĐƠN</div><h1>Thực đơn của bạn</h1><p>Quản lý các món uống và bánh ngọt tại cửa hàng.</p></div><button class="button button-primary" @onclick="AddProduct">＋ Thêm món mới</button></div>
-<div class="menu-stats"><div class="surface mini-stat"><span>Tổng số món</span><b>@_products.Count <small>món</small></b></div><div class="surface mini-stat"><span>Đang kinh doanh</span><b>12 <small>món</small></b></div><div class="surface mini-stat"><span>Hết hàng</span><b class="low-stock-stat">2 <small>món</small></b></div><div class="surface mini-stat"><span>Danh mục</span><b>04 <small>nhóm</small></b></div></div>
-<section class="surface management-panel"><div class="management-toolbar"><div class="search-box compact-search"><span>⌕</span><input placeholder="Tìm tên món..." @bind="_search" @bind:event="oninput" /></div><select class="select-control"><option>Tất cả danh mục</option><option>Cà phê</option><option>Trà</option><option>Đá xay</option><option>Bánh</option></select><select class="select-control"><option>Tất cả trạng thái</option><option>Đang bán</option><option>Hết hàng</option></select><button class="button button-outline filter-button">☷ Bộ lọc</button></div><div class="table-scroll"><table class="data-table"><thead><tr><th>TÊN MÓN</th><th>MÃ MÓN</th><th>DANH MỤC</th><th>GIÁ BÁN</th><th>TRẠNG THÁI</th><th>ĐÃ BÁN</th><th></th></tr></thead><tbody>@foreach(var p in Filtered){<tr><td><div class="table-product"><span class="drink-thumb @p.Tone">@p.Icon</span><span><b>@p.Name</b><small>@p.Subtitle</small></span></div></td><td class="muted-cell">@p.Code</td><td><span class="category-tag">@p.Category</span></td><td class="strong-cell">@Money(p.Price)</td><td><span class="status @(p.Active?"status-done":"status-out")">● @(p.Active?"Đang bán":"Hết hàng")</span></td><td class="muted-cell">@p.Sold ly</td><td><button class="row-action" title="Sửa món" @onclick="()=>EditProduct(p)">···</button></td></tr>}</tbody></table></div><div class="table-footer"><span>Hiển thị <b>@Filtered.Count()</b> trên <b>@_products.Count</b> món</span><div class="pagination"><button>←</button><button class="page-current">1</button><button>2</button><button>→</button></div></div></section>
-@if(_editing){<div class="modal-backdrop" @onclick="CloseEditor"><section class="checkout-modal form-modal" @onclick:stopPropagation="true"><button class="modal-close" @onclick="CloseEditor">×</button><div class="eyebrow">THỰC ĐƠN MỘC.</div><h2>@(_selected is null?"Thêm món mới":"Cập nhật món")</h2><p>Điền thông tin sản phẩm để cập nhật thực đơn.</p><label class="form-label">TÊN MÓN</label><input class="form-input" @bind="_formName" placeholder="Ví dụ: Bạc xỉu"/><label class="form-label">DANH MỤC</label><select class="form-input" @bind="_formCategory"><option>Cà phê</option><option>Trà</option><option>Đá xay</option><option>Bánh</option></select><label class="form-label">GIÁ BÁN (₫)</label><input class="form-input" type="number" @bind="_formPrice"/><div class="modal-actions"><button class="button button-outline" @onclick="CloseEditor">Hủy</button><button class="button button-primary" @onclick="SaveProduct">Lưu món</button></div></section></div>}
-@code{
-private string _search="",_formName="",_formCategory="Cà phê";private int _formPrice=49000;private bool _editing;private MenuProduct? _selected;private IEnumerable<MenuProduct> Filtered=>_products.Where(p=>p.Name.Contains(_search,StringComparison.CurrentCultureIgnoreCase));private static string Money(int v)=>v.ToString("N0",CultureInfo.GetCultureInfo("vi-VN"))+" ₫";
-private readonly List<MenuProduct> _products=[new("Bạc xỉu","Cà phê sữa đá truyền thống","CF001","Cà phê",49000,true,42,"drink-coffee","☕"),new("Latte kem muối","Cà phê espresso, kem mặn","CF002","Cà phê",70000,true,36,"drink-latte","☁"),new("Cold brew cam","Cà phê ủ lạnh vị cam","CF003","Cà phê",70000,true,28,"drink-cold","◉"),new("Trà đào cam sả","Trà đào tươi, sả, cam","TE001","Trà",55000,true,24,"drink-tea","♨"),new("Matcha latte","Matcha Nhật, sữa tươi","TE002","Trà",65000,true,18,"drink-matcha","🍵"),new("Croissant bơ","Bánh sừng bò bơ Pháp","BK001","Bánh",38000,false,0,"drink-croissant","🥐")];
-private sealed class MenuProduct(string name,string subtitle,string code,string category,int price,bool active,int sold,string tone,string icon){public string Name{get;set;}=name;public string Subtitle{get;}=subtitle;public string Code{get;}=code;public string Category{get;set;}=category;public int Price{get;set;}=price;public bool Active{get;set;}=active;public int Sold{get;}=sold;public string Tone{get;}=tone;public string Icon{get;}=icon;}
-private void AddProduct(){_selected=null;_formName="";_formPrice=49000;_formCategory="Cà phê";_editing=true;}private void EditProduct(MenuProduct p){_selected=p;_formName=p.Name;_formCategory=p.Category;_formPrice=p.Price;_editing=true;}private void CloseEditor()=>_editing=false;private void SaveProduct(){if(string.IsNullOrWhiteSpace(_formName))return;if(_selected is null)_products.Add(new(_formName,"Món mới của cửa hàng","NEW00",_formCategory,_formPrice,true,0,"drink-tea","☕"));else{_selected.Name=_formName;_selected.Category=_formCategory;_selected.Price=_formPrice;}_editing=false;}
+
+<div class="page-heading">
+    <div>
+        <div class="eyebrow">QUẢN LÝ <span class="eyebrow-dot"></span> THỰC ĐƠN</div>
+        <h1>Thực đơn của bạn</h1>
+        <p>Quản lý danh sách các món uống, giá bán và trạng thái kinh doanh tại quán.</p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        @if (HasActiveFilters)
+        {
+            <button class="button button-outline" style="color: #be7165; border-color: #f1cfc8;" @onclick="ResetFilters">
+                <span>Xóa lọc</span>
+            </button>
+        }
+        <button class="button button-primary" @onclick="AddProduct">
+            ＋ <span>Thêm món mới</span>
+        </button>
+    </div>
+</div>
+
+<!-- Thống kê trạng thái thực đơn (Tự động tính theo dữ liệu thật, click để lọc nhanh) -->
+<div class="menu-stats">
+    <div class="surface mini-stat" style="cursor: pointer;" @onclick='() => SetStatusFilter("Tất cả trạng thái")'>
+        <span>Tổng số món</span>
+        <b>@_products.Count <small>món</small></b>
+    </div>
+    <div class="surface mini-stat" style="cursor: pointer;" @onclick='() => SetStatusFilter("Đang bán")'>
+        <span>Đang kinh doanh</span>
+        <b style="color: #437a54;">@_products.Count(p => p.Active) <small>món</small></b>
+    </div>
+    <div class="surface mini-stat" style="cursor: pointer;" @onclick='() => SetStatusFilter("Hết hàng")'>
+        <span>Tạm hết hàng</span>
+        <b class="low-stock-stat">@_products.Count(p => !p.Active) <small>món</small></b>
+    </div>
+    <div class="surface mini-stat">
+        <span>Nhóm danh mục</span>
+        <b>@_products.Select(p => p.Category).Distinct().Count() <small>nhóm</small></b>
+    </div>
+</div>
+
+<section class="surface management-panel">
+    <!-- Thanh công cụ & Bộ lọc đa năng -->
+    <div class="management-toolbar" style="flex-wrap: wrap; gap: 10px;">
+        <!-- 1. Tìm kiếm theo tên hoặc mã món -->
+        <div class="search-box compact-search" style="min-width: 220px; flex: 1.2;">
+            <input placeholder="Tìm tên món, mã món (VD: CF001)..." @bind="_search" @bind:event="oninput" />
+            @if (!string.IsNullOrEmpty(_search))
+            {
+                <button type="button" style="border: 0; background: none; color: #a0a59c; cursor: pointer; padding: 0 4px;" @onclick="() => _search = string.Empty">✕</button>
+            }
+        </div>
+
+        <!-- 2. Bộ lọc Danh mục -->
+        <div style="display: flex; align-items: center; gap: 5px;">
+            <select class="select-control" @bind="_filterCategory">
+                <option value="Tất cả danh mục">Tất cả danh mục</option>
+                @foreach (var cat in Categories)
+                {
+                    <option value="@cat">@cat</option>
+                }
+            </select>
+        </div>
+
+        <!-- 3. Bộ lọc Trạng thái kinh doanh -->
+        <div style="display: flex; align-items: center; gap: 5px;">
+            <select class="select-control" @bind="_filterStatus">
+                <option value="Tất cả trạng thái">Tất cả trạng thái</option>
+                <option value="Đang bán">Đang bán</option>
+                <option value="Hết hàng">Hết hàng</option>
+            </select>
+        </div>
+
+        <!-- 4. Sắp xếp thứ tự -->
+        <div style="display: flex; align-items: center; gap: 5px;">
+            <select class="select-control" @bind="_sortBy">
+                <option value="default">Sắp xếp: Mặc định</option>
+                <option value="price-asc">Giá: Thấp đến cao</option>
+                <option value="price-desc">Giá: Cao đến thấp</option>
+                <option value="best-seller">Bán chạy nhất (Số ly)</option>
+                <option value="name-az">Tên món A - Z</option>
+            </select>
+        </div>
+
+        <!-- 5. Nút Reset / Đặt lại bộ lọc -->
+        @if (HasActiveFilters)
+        {
+            <button class="button button-outline filter-button" title="Đặt lại toàn bộ tiêu chí lọc" @onclick="ResetFilters">
+                Đặt lại
+            </button>
+        }
+    </div>
+
+    <!-- Quick Category Filter Pills -->
+    <div style="display: flex; gap: 8px; padding: 10px 15px; border-bottom: 1px solid #f0f2ed; overflow-x: auto;">
+        <button class="category-tag @(_filterCategory == "Tất cả danh mục" ? "status-done" : "")" style="cursor: pointer; padding: 5px 11px; font-size: 10px;" @onclick='() => _filterCategory = "Tất cả danh mục"'>
+            Tất cả (@_products.Count)
+        </button>
+        @foreach (var cat in Categories)
+        {
+            var count = _products.Count(x => x.Category == cat);
+            <button class="category-tag @(_filterCategory == cat ? "status-done" : "")" style="cursor: pointer; padding: 5px 11px; font-size: 10px;" @onclick='() => _filterCategory = cat'>
+                @cat (@count)
+            </button>
+        }
+    </div>
+
+    <!-- Bảng danh sách sản phẩm -->
+    <div class="table-scroll">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>TÊN MÓN</th>
+                    <th>MÃ MÓN</th>
+                    <th>DANH MỤC</th>
+                    <th>GIÁ BÁN</th>
+                    <th>TRẠNG THÁI</th>
+                    <th>ĐÃ BÁN</th>
+                    <th style="text-align: right; padding-right: 18px;">THAO TÁC</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Filtered.Any())
+                {
+                    @foreach (var p in Filtered)
+                    {
+                        <tr>
+                            <td>
+                                <div class="table-product">
+                                    <span class="drink-thumb @p.Tone">@p.Icon</span>
+                                    <span>
+                                        <b>@p.Name</b>
+                                        <small>@p.Subtitle</small>
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="muted-cell">@p.Code</td>
+                            <td><span class="category-tag">@p.Category</span></td>
+                            <td class="strong-cell">@Money(p.Price)</td>
+                            <td>
+                                <button type="button" class="status @(p.Active ? "status-done" : "status-out")" style="border: 0; cursor: pointer;" title="Bấm để chuyển trạng thái" @onclick="() => ToggleProductStatus(p)">
+                                    ● @(p.Active ? "Đang bán" : "Hết hàng")
+                                </button>
+                            </td>
+                            <td class="muted-cell">@p.Sold ly</td>
+                            <td style="text-align: right; padding-right: 18px;">
+                                <button class="button button-outline" style="height: 25px; padding: 0 8px; font-size: 9px;" title="Chỉnh sửa thông tin món" @onclick="() => EditProduct(p)">
+                                    Sửa
+                                </button>
+                                <button class="button button-outline" style="height: 25px; padding: 0 8px; font-size: 9px; color: #be7165; margin-left: 4px;" title="Xóa món khỏi thực đơn" @onclick="() => DeleteProduct(p)">
+                                    Xóa
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 45px 15px; color: #8c9187;">
+                            <b>Không tìm thấy món nào phù hợp với bộ lọc hiện tại.</b>
+                            <p style="margin: 6px 0 12px; font-size: 11px;">Thử thay đổi từ khóa tìm kiếm hoặc làm mới bộ lọc.</p>
+                            <button class="button button-outline" style="font-size: 10px;" @onclick="ResetFilters">
+                                Xóa toàn bộ bộ lọc
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Chân bảng: Thống kê số lượng hiển thị -->
+    <div class="table-footer">
+        <span>Hiển thị <b>@Filtered.Count()</b> trên <b>@_products.Count</b> món thực đơn</span>
+        <div class="pagination">
+            <button title="Trang trước">←</button>
+            <button class="page-current">1</button>
+            <button title="Trang sau">→</button>
+        </div>
+    </div>
+</section>
+
+<!-- Modal Thêm / Chỉnh sửa món -->
+@if (_editing)
+{
+    <div class="modal-backdrop" @onclick="CloseEditor">
+        <section class="checkout-modal form-modal" @onclick:stopPropagation="true">
+            <button class="modal-close" @onclick="CloseEditor">×</button>
+            <div class="eyebrow">THỰC ĐƠN GỖ COFFEE</div>
+            <h2>@(_selected is null ? "Thêm món mới" : "Cập nhật món")</h2>
+            <p>Điền thông tin sản phẩm để đồng bộ vào thực đơn cửa hàng.</p>
+
+            <label class="form-label">TÊN MÓN (*)</label>
+            <input class="form-input" @bind="_formName" placeholder="Ví dụ: Bạc xỉu đặc biệt" />
+
+            <label class="form-label">MÃ MÓN</label>
+            <input class="form-input" @bind="_formCode" placeholder="Ví dụ: CF009" />
+
+            <label class="form-label">DANH MỤC</label>
+            <select class="form-input" @bind="_formCategory">
+                @foreach (var cat in Categories)
+                {
+                    <option value="@cat">@cat</option>
+                }
+            </select>
+
+            <label class="form-label">GIÁ BÁN (₫)</label>
+            <input class="form-input" type="number" @bind="_formPrice" step="1000" />
+
+            <label class="form-label">MÔ TẢ NGẮN</label>
+            <input class="form-input" @bind="_formSubtitle" placeholder="Ví dụ: Cà phê sữa tươi thơm ngậy" />
+
+            <label class="remember-row" style="margin-top: 10px;">
+                <input type="checkbox" @bind="_formActive" />
+                <span>Kích hoạt bán ngay (Đang bán)</span>
+            </label>
+
+            <div class="modal-actions">
+                <button class="button button-outline" @onclick="CloseEditor">Hủy</button>
+                <button class="button button-primary" @onclick="SaveProduct">Lưu món</button>
+            </div>
+        </section>
+    </div>
+}
+
+@code {
+    private string _search = "";
+    private string _filterCategory = "Tất cả danh mục";
+    private string _filterStatus = "Tất cả trạng thái";
+    private string _sortBy = "default";
+
+    // Form modal state
+    private bool _editing;
+    private MenuProduct? _selected;
+    private string _formName = "";
+    private string _formCode = "";
+    private string _formCategory = "Cà phê";
+    private string _formSubtitle = "";
+    private int _formPrice = 45000;
+    private bool _formActive = true;
+
+    private static readonly string[] Categories = ["Cà phê", "Trà", "Đá xay", "Bánh"];
+
+    private readonly List<MenuProduct> _products = [
+        new("Bạc xỉu", "Cà phê sữa đá truyền thống", "CF001", "Cà phê", 49000, true, 42, "drink-coffee", "☕"),
+        new("Latte kem muối", "Cà phê espresso, kem béo mặn", "CF002", "Cà phê", 70000, true, 36, "drink-latte", "☁"),
+        new("Cold brew cam", "Cà phê ủ lạnh thanh mát vị cam", "CF003", "Cà phê", 70000, true, 28, "drink-cold", "◉"),
+        new("Cà phê đen đá", "Cà phê Robusta đậm vị truyền thống", "CF004", "Cà phê", 35000, true, 55, "drink-coffee", "☕"),
+        new("Trà đào cam sả", "Trà đào tươi, sả thơm, cam vàng", "TE001", "Trà", 55000, true, 24, "drink-tea", "♨"),
+        new("Matcha latte", "Matcha Nhật Bản kết hợp sữa tươi", "TE002", "Trà", 65000, true, 18, "drink-matcha", "🍵"),
+        new("Trà ô long vải", "Trà ô long hoa lài hạt vải tươi", "TE003", "Trà", 58000, true, 31, "drink-tea", "🫖"),
+        new("Matcha đá xay", "Matcha kem cheese xay nhuyễn mịn", "DX001", "Đá xay", 68000, true, 19, "drink-matcha", "❄"),
+        new("Chocolate đá xay", "Socola Bỉ nguyên chất, kem tươi", "DX002", "Đá xay", 69000, true, 15, "drink-choco", "🍫"),
+        new("Croissant bơ", "Bánh sừng bò bơ Pháp giòn xốp", "BK001", "Bánh", 38000, false, 8, "drink-croissant", "🥐"),
+        new("Tiramisu", "Bánh kem phô mai Ý mềm mịn", "BK002", "Bánh", 52000, true, 22, "drink-croissant", "🍰"),
+        new("Bánh chuối nướng", "Chuối mật ngọt dịu vị caramel", "BK003", "Bánh", 35000, false, 4, "drink-croissant", "🧁")
+    ];
+
+    private bool HasActiveFilters =>
+        !string.IsNullOrWhiteSpace(_search) ||
+        _filterCategory != "Tất cả danh mục" ||
+        _filterStatus != "Tất cả trạng thái" ||
+        _sortBy != "default";
+
+    private IEnumerable<MenuProduct> Filtered
+    {
+        get
+        {
+            var query = _products.AsEnumerable();
+
+            // 1. Lọc theo từ khóa tìm kiếm
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                var term = _search.Trim();
+                query = query.Where(p =>
+                    p.Name.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    p.Code.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    p.Subtitle.Contains(term, StringComparison.OrdinalIgnoreCase));
+            }
+
+            // 2. Lọc theo Danh mục
+            if (_filterCategory != "Tất cả danh mục")
+            {
+                query = query.Where(p => p.Category.Equals(_filterCategory, StringComparison.OrdinalIgnoreCase));
+            }
+
+            // 3. Lọc theo Trạng thái kinh doanh
+            if (_filterStatus == "Đang bán")
+            {
+                query = query.Where(p => p.Active);
+            }
+            else if (_filterStatus == "Hết hàng")
+            {
+                query = query.Where(p => !p.Active);
+            }
+
+            // 4. Sắp xếp
+            query = _sortBy switch
+            {
+                "price-asc" => query.OrderBy(p => p.Price),
+                "price-desc" => query.OrderByDescending(p => p.Price),
+                "best-seller" => query.OrderByDescending(p => p.Sold),
+                "name-az" => query.OrderBy(p => p.Name),
+                _ => query
+            };
+
+            return query;
+        }
+    }
+
+    private void SetStatusFilter(string status) => _filterStatus = status;
+
+    private void ResetFilters()
+    {
+        _search = "";
+        _filterCategory = "Tất cả danh mục";
+        _filterStatus = "Tất cả trạng thái";
+        _sortBy = "default";
+    }
+
+    private void ToggleProductStatus(MenuProduct p)
+    {
+        p.Active = !p.Active;
+    }
+
+    private void DeleteProduct(MenuProduct p)
+    {
+        _products.Remove(p);
+    }
+
+    private void AddProduct()
+    {
+        _selected = null;
+        _formName = "";
+        _formCode = $"CF0{_products.Count + 1:D2}";
+        _formCategory = "Cà phê";
+        _formSubtitle = "Món uống tươi mới tại quán";
+        _formPrice = 45000;
+        _formActive = true;
+        _editing = true;
+    }
+
+    private void EditProduct(MenuProduct p)
+    {
+        _selected = p;
+        _formName = p.Name;
+        _formCode = p.Code;
+        _formCategory = p.Category;
+        _formSubtitle = p.Subtitle;
+        _formPrice = p.Price;
+        _formActive = p.Active;
+        _editing = true;
+    }
+
+    private void CloseEditor() => _editing = false;
+
+    private void SaveProduct()
+    {
+        if (string.IsNullOrWhiteSpace(_formName)) return;
+
+        if (_selected is null)
+        {
+            var tone = _formCategory switch
+            {
+                "Cà phê" => "drink-coffee",
+                "Trà" => "drink-tea",
+                "Đá xay" => "drink-choco",
+                "Bánh" => "drink-croissant",
+                _ => "drink-tea"
+            };
+
+            var icon = _formCategory switch
+            {
+                "Cà phê" => "☕",
+                "Trà" => "🍵",
+                "Đá xay" => "❄",
+                "Bánh" => "🥐",
+                _ => "☕"
+            };
+
+            _products.Insert(0, new(
+                _formName,
+                string.IsNullOrWhiteSpace(_formSubtitle) ? "Món mới của quán" : _formSubtitle,
+                string.IsNullOrWhiteSpace(_formCode) ? $"MOC{_products.Count + 1}" : _formCode,
+                _formCategory,
+                _formPrice,
+                _formActive,
+                0,
+                tone,
+                icon
+            ));
+        }
+        else
+        {
+            _selected.Name = _formName;
+            _selected.Code = _formCode;
+            _selected.Category = _formCategory;
+            _selected.Subtitle = _formSubtitle;
+            _selected.Price = _formPrice;
+            _selected.Active = _formActive;
+        }
+
+        _editing = false;
+    }
+
+    private static string Money(int v) => v.ToString("N0", CultureInfo.GetCultureInfo("vi-VN")) + " ₫";
+
+    private sealed class MenuProduct(string name, string subtitle, string code, string category, int price, bool active, int sold, string tone, string icon)
+    {
+        public string Name { get; set; } = name;
+        public string Subtitle { get; set; } = subtitle;
+        public string Code { get; set; } = code;
+        public string Category { get; set; } = category;
+        public int Price { get; set; } = price;
+        public bool Active { get; set; } = active;
+        public int Sold { get; } = sold;
+        public string Tone { get; } = tone;
+        public string Icon { get; } = icon;
+    }
 }
