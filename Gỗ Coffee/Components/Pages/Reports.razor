@@ -1,0 +1,31 @@
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,MANAGER")]
+@page "/reports"
+@rendermode InteractiveServer
+@using System.Globalization
+@using System.Text
+@inject StoreDb Db
+<PageTitle>Doanh thu · Gỗ Coffee</PageTitle>
+<div class="page-heading"><div><div class="eyebrow">BÁO CÁO <span class="eyebrow-dot"></span> DOANH THU</div><h1>Báo cáo kinh doanh</h1><p>Doanh thu tổng hợp trực tiếp từ PostgreSQL, loại trừ đơn đã hủy.</p></div><a class="button button-outline" href="@ExportHref" download="go-coffee-revenue.csv">↧ Xuất CSV</a></div>
+@if(_error is not null){<div class="login-error" role="alert">@_error</div>}
+<div class="menu-stats"><div class="surface mini-stat"><span>Tổng doanh thu trong kỳ</span><b>@Money(_rows.Sum(x=>x.Revenue))</b></div><div class="surface mini-stat"><span>Đơn hàng trong kỳ</span><b>@_rows.Sum(x=>x.Count)</b></div><div class="surface mini-stat"><span>Trung bình / đơn</span><b>@Money(_rows.Sum(x=>x.Count)==0?0:_rows.Sum(x=>x.Revenue)/_rows.Sum(x=>x.Count))</b></div></div>
+<section class="surface management-panel report-table-panel"><div class="surface-heading"><div><h2>Doanh thu theo ngày</h2><p>Không tính đơn đã hủy; dữ liệu ngày theo giờ Việt Nam</p></div><div class="row" style="display:flex;gap:10px;"><select class="select-control" @bind="_days" @bind:after="Reload"><option value="7">7 ngày qua</option><option value="30">30 ngày qua</option><option value="90">90 ngày qua</option></select><button class="button button-outline" @onclick="Reload">Làm mới</button></div></div>
+<div class="table-scroll"><table class="data-table"><thead><tr><th>NGÀY</th><th>SỐ ĐƠN</th><th>DOANH THU</th><th>TRUNG BÌNH / ĐƠN</th></tr></thead><tbody>
+@foreach(var r in RowsWithZeros){<tr><td>@r.Date.ToString("dd/MM/yyyy")</td><td>@r.Count</td><td class="strong-cell">@Money(r.Revenue)</td><td>@Money(r.Count==0?0:r.Revenue/r.Count)</td></tr>}
+</tbody></table></div><div class="table-footer">Dữ liệu thực tế. Xuất CSV để xem trên Excel.</div></section>
+@code {
+    private int _days=30;private List<DailyRevenue> _rows=[];private string? _error;
+    private static string Money(decimal v)=>v.ToString("N0",CultureInfo.GetCultureInfo("vi-VN"))+" ₫";
+    private static DateTime TodayVietnam => DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).Date;
+    private IEnumerable<DailyRevenue> RowsWithZeros=>Enumerable.Range(0,_days).Select(i=>TodayVietnam.AddDays(-i)).Select(d=>_rows.FirstOrDefault(x=>x.Date.Date==d.Date)??new DailyRevenue(d,0,0));
+    private string ExportHref
+    {
+        get
+        {
+            var csv=new StringBuilder("\uFEFFNgay,SoDon,DoanhThuVND\r\n");
+            foreach(var row in RowsWithZeros) csv.Append(row.Date.ToString("yyyy-MM-dd")).Append(',').Append(row.Count).Append(',').Append(row.Revenue.ToString(CultureInfo.InvariantCulture)).Append("\r\n");
+            return "data:text/csv;charset=utf-8,"+Uri.EscapeDataString(csv.ToString());
+        }
+    }
+    protected override Task OnInitializedAsync()=>Reload();
+    private async Task Reload(){try{_rows=await Db.GetDailyRevenueAsync(_days);_error=null;}catch(Exception){_error="Không tải được báo cáo từ PostgreSQL.";}}
+}

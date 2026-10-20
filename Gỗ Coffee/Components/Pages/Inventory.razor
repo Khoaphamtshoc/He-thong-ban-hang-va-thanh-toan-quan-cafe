@@ -1,0 +1,30 @@
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,MANAGER,WAREHOUSE")]
+@page "/inventory"
+@rendermode InteractiveServer
+@using System.Globalization
+@inject StoreDb Db
+<PageTitle>Kho nguyên liệu · Gỗ Coffee</PageTitle>
+<div class="page-heading"><div><div class="eyebrow">QUẢN LÝ <span class="eyebrow-dot"></span> KHO NGUYÊN LIỆU</div><h1>Tồn kho nguyên liệu</h1><p>Số lượng thực tế được lưu vào PostgreSQL, có lịch sử nhập kho.</p></div><button class="button button-primary" @onclick="StartImport">＋ Nhập nguyên liệu</button></div>
+@if(_error is not null){<div class="login-error" role="alert">@_error</div>}
+@if(_toast is not null){<div class="toast-message">✓ @_toast</div>}
+<div class="menu-stats"><div class="surface mini-stat"><span>Tổng nguyên liệu</span><b>@_items.Count</b></div><div class="surface mini-stat"><span>Sắp hết / hết</span><b>@_items.Count(i=>i.Stock<=i.Minimum)</b></div><div class="surface mini-stat"><span>Còn tồn kho</span><b>@_items.Count(i=>i.Stock>0)</b></div></div>
+<section class="surface management-panel"><div class="management-toolbar"><div class="search-box compact-search"><span>⌕</span><input placeholder="Tìm nguyên liệu" @bind="_search" @bind:event="oninput" /></div><select class="select-control" @bind="_filter"><option value="all">Tất cả</option><option value="low">Sắp hết</option><option value="out">Hết hàng</option></select><button class="button button-outline" @onclick="Reload">↻ Tải lại</button></div>
+<div class="table-scroll"><table class="data-table inventory-table"><thead><tr><th>NGUYÊN LIỆU</th><th>NHÓM</th><th>ĐANG CÓ</th><th>NGƯỠNG</th><th>TRẠNG THÁI</th><th>THAO TÁC</th></tr></thead><tbody>
+@foreach(var item in Filtered){<tr><td><b>@item.Name</b><small class="table-secondary">@item.Supplier</small></td><td>@item.Category</td><td class="strong-cell">@Qty(item.Stock) @item.Unit</td><td>@Qty(item.Minimum) @item.Unit</td><td><span class="status @(item.Stock==0?"status-off":item.Stock<=item.Minimum?"status-warning":"status-done")">@(item.Stock==0?"Hết hàng":item.Stock<=item.Minimum?"Sắp hết":"Còn hàng")</span></td><td><button class="button button-outline" @onclick="()=>StartImportFor(item)">Nhập kho</button></td></tr>}
+</tbody></table></div><div class="table-footer">Hiển thị @Filtered.Count() / @_items.Count nguyên liệu</div></section>
+@if(_importing)
+{ <div class="modal-backdrop" @onclick="()=>_importing=false"><section class="checkout-modal form-modal" @onclick:stopPropagation="true"><button class="modal-close" @onclick="()=>_importing=false">×</button><h2>Nhập nguyên liệu</h2>
+<label class="form-label">NGUYÊN LIỆU</label><select class="form-input" @bind="_selectedId">@foreach(var i in _items){<option value="@i.Id">@i.Name (@i.Unit)</option>}</select>
+<label class="form-label">SỐ LƯỢNG THỰC NHẬP</label><input class="form-input" type="number" min="0.001" step="0.001" @bind="_quantity" />
+<div class="modal-actions"><button class="button button-outline" @onclick="()=>_importing=false">Hủy</button><button class="button button-primary" disabled="@_saving" @onclick="SaveImport">@(_saving?"Đang lưu...":"Xác nhận nhập kho")</button></div></section></div>}
+@code {
+    private List<IngredientRow> _items=[];private string _search="",_filter="all";
+    private string? _error,_toast;private long _selectedId;private decimal _quantity=1;private bool _importing,_saving;
+    private IEnumerable<IngredientRow> Filtered=>_items.Where(i=>i.Name.Contains(_search,StringComparison.OrdinalIgnoreCase)&&(_filter=="all"||(_filter=="low"?i.Stock<=i.Minimum:i.Stock==0)));
+    private static string Qty(decimal q)=>q.ToString("0.###",CultureInfo.GetCultureInfo("vi-VN"));
+    protected override Task OnInitializedAsync()=>Reload();
+    private async Task Reload(){try{_items=await Db.GetIngredientsAsync();_error=null;}catch(Exception){_error="Không tải được nguyên liệu từ PostgreSQL.";}}
+    private void StartImport(){_selectedId=_items.FirstOrDefault()?.Id??0;_quantity=1;_importing=true;}
+    private void StartImportFor(IngredientRow row){_selectedId=row.Id;_quantity=1;_importing=true;}
+    private async Task SaveImport(){if(_saving)return;_saving=true;try{await Db.ImportIngredientAsync(_selectedId,_quantity);_importing=false;await Reload();_toast="Đã nhập kho và ghi nhật ký giao dịch.";}catch(Exception ex){_error=ex.Message;}finally{_saving=false;}}
+}

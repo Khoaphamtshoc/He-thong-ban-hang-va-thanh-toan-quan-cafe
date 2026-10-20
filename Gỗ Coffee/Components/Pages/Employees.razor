@@ -1,0 +1,35 @@
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN")]
+@page "/employees"
+@rendermode InteractiveServer
+@inject StoreDb Db
+@using System.Globalization
+<PageTitle>Nhân viên · Gỗ Coffee</PageTitle>
+<div class="page-heading"><div><div class="eyebrow">QUẢN TRỊ <span class="eyebrow-dot"></span> NHÂN SỰ & PHÂN QUYỀN</div><h1>Đội ngũ Gỗ Coffee</h1><p>Quyền được kiểm tra ở máy chủ; thay đổi được lưu vào PostgreSQL.</p></div><button class="button button-primary" @onclick="Add">＋ Thêm nhân viên</button></div>
+@if(_error is not null){<div class="login-error" role="alert">@_error</div>}
+@if(_toast is not null){<div class="toast-message">✓ @_toast</div>}
+<div class="menu-stats"><div class="surface mini-stat"><span>Tổng nhân viên</span><b>@_employees.Count</b></div><div class="surface mini-stat"><span>Đang hoạt động</span><b>@_employees.Count(x=>x.Status=="ACTIVE")</b></div><div class="surface mini-stat"><span>Tạm ngưng</span><b>@_employees.Count(x=>x.Status!="ACTIVE")</b></div></div>
+<section class="surface management-panel"><div class="management-toolbar"><div class="search-box compact-search"><span>⌕</span><input placeholder="Tìm theo tên hoặc email" @bind="_search" @bind:event="oninput" /></div><select class="select-control" @bind="_filter"><option value="all">Tất cả vai trò</option><option value="ADMIN">Admin</option><option value="MANAGER">Quản lý</option><option value="STAFF">Nhân viên</option><option value="WAREHOUSE">Thủ kho</option></select><button class="button button-outline" @onclick="Reload">↻ Tải lại</button></div>
+<div class="table-scroll"><table class="data-table"><thead><tr><th>NHÂN VIÊN</th><th>VAI TRÒ</th><th>NGÀY VÀO LÀM</th><th>TRẠNG THÁI</th><th>THAO TÁC</th></tr></thead><tbody>
+@foreach(var e in Filtered){<tr><td><b>@e.Name</b><small class="table-secondary">@e.Email</small></td><td><span class="role-tag @(e.Role=="ADMIN"?"role-admin":e.Role=="MANAGER"?"role-manager":"role-staff")">@RoleName(e.Role)</span></td><td>@e.Joined.ToString("dd/MM/yyyy")</td><td><span class="status @(e.Status=="ACTIVE"?"status-done":"status-off")">@(e.Status=="ACTIVE"?"Hoạt động":"Tạm ngưng")</span></td><td><button class="button button-outline" @onclick="()=>Edit(e)">Sửa</button> <button class="button button-outline" @onclick="()=>ToggleStatus(e)">@(e.Status=="ACTIVE"?"Vô hiệu hóa":"Kích hoạt")</button></td></tr>}
+</tbody></table></div><div class="table-footer">Hiển thị @Filtered.Count() / @_employees.Count nhân viên</div></section>
+<section class="surface roles-panel"><div class="surface-heading"><div><h2>Phân quyền</h2><p>Kiểm tra ở route và tại tầng dữ liệu phía máy chủ</p></div></div>
+<div class="role-cards"><article><span class="role-symbol admin-symbol">♙</span><div><b>Admin</b><p>Toàn quyền, quản lý nhân viên và vai trò.</p></div></article><article><span class="role-symbol manager-symbol">⌂</span><div><b>Quản lý</b><p>Dashboard, báo cáo, thực đơn, bán hàng và kho.</p></div></article><article><span class="role-symbol staff-symbol">♧</span><div><b>Nhân viên</b><p>Thu ngân, đơn hàng.</p></div></article><article><span class="role-symbol staff-symbol">▥</span><div><b>Thủ kho</b><p>Chỉ sử dụng chức năng nhập kho, tồn kho.</p></div></article></div></section>
+@if(_editing)
+{<div class="modal-backdrop" @onclick="()=>_editing=false"><section class="checkout-modal form-modal" @onclick:stopPropagation="true"><button class="modal-close" @onclick="()=>_editing=false">×</button><h2>@(_id==0?"Thêm nhân viên":"Sửa thông tin")</h2>
+<label class="form-label">HỌ TÊN</label><input class="form-input" @bind="_name" maxlength="150" />
+<label class="form-label">EMAIL (TÀI KHOẢN ĐĂNG NHẬP)</label><input class="form-input" type="email" @bind="_email" maxlength="150" />
+<label class="form-label">VAI TRÒ</label><select class="form-input" @bind="_role"><option value="ADMIN">Admin</option><option value="MANAGER">Quản lý</option><option value="STAFF">Nhân viên</option><option value="WAREHOUSE">Thủ kho</option></select>
+@if(_id==0){<label class="form-label">MẬT KHẨU TẠM (ÍT NHẤT 10 KÝ TỰ)</label><input class="form-input" type="password" @bind="_temporaryPassword" autocomplete="new-password" />}
+<div class="modal-actions"><button class="button button-outline" @onclick="()=>_editing=false">Hủy</button><button class="button button-primary" disabled="@_saving" @onclick="Save">@(_saving?"Đang lưu...":"Lưu nhân viên")</button></div></section></div>}
+@code {
+    private List<EmployeeRow> _employees=[];private string _search="",_filter="all",_name="",_email="",_role="STAFF",_temporaryPassword="";
+    private long _id;private bool _editing,_saving;private string? _error,_toast;
+    private IEnumerable<EmployeeRow> Filtered=>_employees.Where(e=>(e.Name.Contains(_search,StringComparison.OrdinalIgnoreCase)||e.Email.Contains(_search,StringComparison.OrdinalIgnoreCase))&&(_filter=="all"||e.Role==_filter));
+    private static string RoleName(string role)=>role switch{"ADMIN"=>"Admin","MANAGER"=>"Quản lý","WAREHOUSE"=>"Thủ kho",_=>"Nhân viên"};
+    protected override Task OnInitializedAsync()=>Reload();
+    private async Task Reload(){try{_employees=await Db.GetEmployeesAsync();_error=null;}catch(Exception){_error="Không tải được nhân viên từ PostgreSQL.";}}
+    private void Add(){_id=0;_name="";_email="";_role="STAFF";_temporaryPassword="";_editing=true;}
+    private void Edit(EmployeeRow e){_id=e.Id;_name=e.Name;_email=e.Email;_role=e.Role;_temporaryPassword="";_editing=true;}
+    private async Task Save(){if(_saving)return;_saving=true;try{await Db.SaveEmployeeAsync(_id,_name,_email,_role,_temporaryPassword);_editing=false;await Reload();_toast="Đã lưu thông tin nhân viên.";}catch(Exception ex){_error=$"Không thể lưu: {ex.Message}";}finally{_saving=false;}}
+    private async Task ToggleStatus(EmployeeRow e){try{await Db.SetEmployeeActiveAsync(e.Id,e.Status!="ACTIVE");await Reload();_toast="Đã cập nhật trạng thái tài khoản.";}catch(Exception ex){_error=ex.Message;}}
+}

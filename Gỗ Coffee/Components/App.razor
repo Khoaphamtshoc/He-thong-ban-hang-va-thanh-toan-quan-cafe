@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="soft-sakura.css" />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+<body>
+    <Router AppAssembly="typeof(Program).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)">
+                <NotAuthorized>
+                    <div class="permission-page"><h1>Không có quyền truy cập</h1><p>Vui lòng đăng nhập bằng tài khoản có quyền phù hợp.</p><a class="button button-primary" href="/login">Đăng nhập</a></div>
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        </Found>
+        <NotFound><div class="permission-page"><h1>Không tìm thấy trang</h1><a class="button button-primary" href="/">Quay về</a></div></NotFound>
+    </Router>
+    <script src="ui.js" defer></script>
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>

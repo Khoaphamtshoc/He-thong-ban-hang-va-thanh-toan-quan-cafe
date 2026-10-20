@@ -1,0 +1,22 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Go Coffee: build",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["build", "Gỗ Coffee/CuaHangTienLoi.Web.csproj"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Go Coffee: run",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["run", "--project", "Gỗ Coffee/CuaHangTienLoi.Web.csproj", "--launch-profile", "http"],
+      "group": "none",
+      "isBackground": true,
+      "problemMatcher": "$msCompile"
+    }
+  ]
+}

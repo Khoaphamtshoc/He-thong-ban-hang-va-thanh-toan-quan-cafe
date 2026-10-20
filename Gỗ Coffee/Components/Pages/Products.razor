@@ -1,0 +1,40 @@
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,MANAGER")]
+@page "/products"
+@rendermode InteractiveServer
+@using System.Globalization
+@inject StoreDb Db
+<PageTitle>Thực đơn · Gỗ Coffee</PageTitle>
+<div class="page-heading"><div><div class="eyebrow">QUẢN LÝ <span class="eyebrow-dot"></span> THỰC ĐƠN</div><h1>Thực đơn Gỗ Coffee</h1><p>Thêm, sửa, ẩn sản phẩm trên PostgreSQL.</p></div><button class="button button-primary" @onclick="Add">＋ Thêm món mới</button></div>
+@if(_error is not null){<div class="login-error" role="alert">@_error</div>}
+@if(_toast is not null){<div class="toast-message">✓ @_toast</div>}
+<div class="menu-stats"><div class="surface mini-stat"><span>Tổng món</span><b>@_items.Count</b></div><div class="surface mini-stat"><span>Đang bán</span><b>@_items.Count(p=>p.Active)</b></div><div class="surface mini-stat"><span>Ngừng bán</span><b>@_items.Count(p=>!p.Active)</b></div></div>
+<section class="surface management-panel"><div class="management-toolbar"><div class="search-box compact-search"><span>⌕</span><input placeholder="Tìm tên hoặc mã món" @bind="_search" @bind:event="oninput" /></div><select class="select-control" @bind="_filter"><option value="all">Tất cả trạng thái</option><option value="active">Đang bán</option><option value="inactive">Ngừng bán</option></select><button class="button button-outline" @onclick="Reload">↻ Làm mới</button></div>
+<div class="table-scroll"><table class="data-table"><thead><tr><th>MÃ</th><th>TÊN MÓN</th><th>DANH MỤC</th><th>GIÁ</th><th>TRẠNG THÁI</th><th>THAO TÁC</th></tr></thead><tbody>
+@foreach(var p in Filtered){<tr><td class="muted-cell">@p.Code</td><td><b>@p.Name</b><small class="table-secondary">@p.Description</small></td><td>@p.Category</td><td class="strong-cell">@Money(p.Price)</td><td><span class="status @(p.Active?"status-done":"status-off")">@(p.Active?"Đang bán":"Ngừng bán")</span></td><td><button class="button button-outline" @onclick="()=>Edit(p)">Sửa</button> <button class="button button-outline" disabled="@(!p.Active)" @onclick="()=>Deactivate(p)">Ngừng bán</button></td></tr>}
+</tbody></table></div><div class="table-footer">Hiển thị @Filtered.Count() / @_items.Count sản phẩm</div></section>
+@if(_editing)
+{
+    <div class="modal-backdrop" @onclick="()=>_editing=false"><section class="checkout-modal form-modal" @onclick:stopPropagation="true"><button class="modal-close" @onclick="()=>_editing=false">×</button><h2>@(_id==0?"Thêm món mới":"Sửa món")</h2><p>Cập nhật thực đơn và lưu trực tiếp vào cơ sở dữ liệu.</p>
+        <label class="form-label">MÃ MÓN</label><input class="form-input" maxlength="30" @bind="_code" />
+        <label class="form-label">TÊN MÓN</label><input class="form-input" maxlength="150" @bind="_name" />
+        <label class="form-label">MÔ TẢ</label><input class="form-input" @bind="_description" />
+        <label class="form-label">DANH MỤC</label><select class="form-input" @bind="_categoryId">@foreach(var c in _categories){<option value="@c.Id">@c.Name</option>}</select>
+        <label class="form-label">GIÁ BÁN (₫)</label><input class="form-input" type="number" min="0" step="1000" @bind="_price" />
+        <label class="remember-row"><input type="checkbox" @bind="_active" /> Đang bán</label>
+        <div class="modal-actions"><button class="button button-outline" @onclick="()=>_editing=false">Hủy</button><button class="button button-primary" disabled="@_saving" @onclick="Save">@(_saving?"Đang lưu...":"Lưu sản phẩm")</button></div>
+    </section></div>
+}
+@code {
+    private List<ProductRow> _items=[];private List<CategoryRow> _categories=[];
+    private string _search="",_filter="all",_code="",_name="",_description="";
+    private long _id,_categoryId;private decimal _price;private bool _active=true,_editing,_saving;
+    private string? _error,_toast;
+    private IEnumerable<ProductRow> Filtered=>_items.Where(p=>(p.Code.Contains(_search,StringComparison.OrdinalIgnoreCase)||p.Name.Contains(_search,StringComparison.OrdinalIgnoreCase))&&(_filter=="all"||(_filter=="active"?p.Active:!p.Active)));
+    private static string Money(decimal price)=>price.ToString("N0",CultureInfo.GetCultureInfo("vi-VN"))+" ₫";
+    protected override Task OnInitializedAsync()=>Reload();
+    private async Task Reload(){try{_items=await Db.GetAllProductsAsync();_categories=await Db.GetCategoriesAsync();_error=null;}catch(Exception){_error="Không đọc được thực đơn PostgreSQL. Kiểm tra cấu hình database.";}}
+    private void Add(){_id=0;_code="";_name="";_description="";_price=0;_active=true;_categoryId=_categories.FirstOrDefault()?.Id??0;_editing=true;_error=null;}
+    private void Edit(ProductRow p){_id=p.Id;_code=p.Code;_name=p.Name;_description=p.Description??"";_price=p.Price;_active=p.Active;_categoryId=p.CategoryId;_editing=true;_error=null;}
+    private async Task Save(){if(_saving)return;_saving=true;try{await Db.SaveProductAsync(_id,_code,_name,_description,_categoryId,_price,_active);_editing=false;await Reload();_toast="Đã lưu sản phẩm vào PostgreSQL.";}catch(Exception ex){_error=$"Không lưu được sản phẩm: {ex.Message}";}finally{_saving=false;}}
+    private async Task Deactivate(ProductRow p){try{await Db.DeactivateProductAsync(p.Id);await Reload();_toast=$"Đã ngừng bán {p.Name}.";}catch(Exception ex){_error=ex.Message;}}
+}

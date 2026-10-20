@@ -1,0 +1,70 @@
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,MANAGER")]
+@page "/"
+@page "/dashboard"
+@rendermode InteractiveServer
+@using System.Globalization
+@inject StoreDb Db
+@inject NavigationManager Navigation
+<PageTitle>Tổng quan · Gỗ Coffee</PageTitle>
+<div class="page-heading"><div><div class="eyebrow">@DateTime.Today.ToString("dddd, dd/MM/yyyy", CultureInfo.GetCultureInfo("vi-VN")) <span class="eyebrow-dot"></span> DỮ LIỆU POSTGRESQL</div><h1>Tổng quan cửa hàng <span class="wave">✿</span></h1><p>Tổng quan hoạt động và doanh thu thực tế của cửa hàng.</p></div><button class="button button-outline" disabled="@_loading" @onclick="Refresh">↻ Làm mới</button></div>
+<section class="welcome-banner" aria-label="Chào mừng đến Gỗ Coffee">
+    <div class="welcome-petals" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="welcome-copy">
+        <span class="welcome-kicker">GỖ COFFEE · QUẢN LÝ CỬA HÀNG</span>
+        <h2>Một ngày làm việc <em>thật nhẹ nhàng.</em></h2>
+        <p>Doanh thu, đơn hàng và nguyên liệu được quản lý ở một nơi.</p>
+        <div class="welcome-actions">
+            <a class="button welcome-primary" href="/sales">＋ Tạo đơn hàng</a>
+            <a class="welcome-secondary" href="/orders">Xem đơn hàng <span aria-hidden="true">→</span></a>
+        </div>
+    </div>
+    <div class="welcome-art" aria-hidden="true"></div>
+</section>
+@if (_error is not null) { <div class="login-error" role="alert">@_error</div> }
+@if (_loading) { <p>Đang tải dữ liệu tổng quan...</p> }
+else if (_data is not null)
+{
+    <div class="stat-grid">
+        <article class="stat-card"><div class="stat-top"><span>Doanh thu hôm nay</span><span class="stat-icon sand">₫</span></div><div class="stat-number">@Money(_data.TodayRevenue)</div><div class="stat-foot">Đơn đã ghi nhận (không tính đơn hủy)</div></article>
+        <article class="stat-card"><div class="stat-top"><span>Đơn hàng hôm nay</span><span class="stat-icon lilac">▤</span></div><div class="stat-number">@_data.TodayOrders <small>đơn</small></div><div class="stat-foot">Dữ liệu được cập nhật sau khi tải lại</div></article>
+        <article class="stat-card"><div class="stat-top"><span>Trung bình mỗi đơn</span><span class="stat-icon peach">⌁</span></div><div class="stat-number">@Money(_data.AverageOrder)</div><div class="stat-foot">Theo doanh thu hôm nay</div></article>
+        <article class="stat-card"><div class="stat-top"><span>Kho & thực đơn</span><span class="stat-icon mint">✳</span></div><div class="stat-number">@_data.ActiveProducts <small>món</small></div><div class="stat-foot">Có @_data.LowStock nguyên liệu sắp hết hoặc hết</div></article>
+    </div>
+    <div class="dashboard-grid">
+        <section class="surface revenue-panel"><div class="surface-heading"><div><h2>Doanh thu 7 ngày</h2><p>Tổng doanh thu ghi nhận mỗi ngày (giờ Việt Nam)</p></div><a class="text-link" href="/reports">Báo cáo →</a></div>
+            @foreach (var day in Week)
+            {
+                <div class="dashboard-revenue-row"><span>@day.Date.ToString("dd/MM")</span><div class="progress-track"><div class="progress-fill" style="width:@(MaxRevenue == 0 ? "0" : Math.Round(day.Revenue / MaxRevenue * 100, 1).ToString(CultureInfo.InvariantCulture))%"></div></div><b>@Money(day.Revenue)</b></div>
+            }
+        </section>
+        <section class="surface orders-panel"><div class="surface-heading"><div><h2>Đơn hàng gần đây</h2><p>5 đơn mới nhất</p></div><a class="text-link" href="/orders">Tất cả →</a></div><div class="order-list"><div class="order-row order-head"><span>MÃ ĐƠN</span><span>KHÁCH HÀNG</span><span>TỔNG</span><span>TRẠNG THÁI</span></div>
+            @foreach (var order in _data.RecentOrders)
+            { <div class="order-row"><span class="order-id">@order.Code</span><span>@order.Customer</span><span class="order-total">@Money(order.Total)</span><span class="status @(order.Status=="COMPLETED"?"status-done":order.Status=="CANCELLED"?"status-off":"status-making")">@Status(order.Status)</span></div> }
+            @if (_data.RecentOrders.Count == 0) { <p class="empty-state">Chưa có đơn hàng.</p> }
+        </div></section>
+    </div>
+    <section class="surface popularity-panel dashboard-popularity"><div class="surface-heading"><div><h2>Món bán chạy hôm nay</h2><p>Thống kê từ chi tiết đơn hàng</p></div><a class="text-link" href="/products">Thực đơn →</a></div>
+        <div class="popular-list">
+            @foreach (var item in _data.BestSellers) { <div class="popular-item"><div class="drink-thumb drink-coffee">☕</div><div class="popular-copy"><b>@item.Name</b><small>@item.Category</small></div><span class="popular-count">@item.Quantity <small>món</small></span><b class="popular-sales">@Money(item.Revenue)</b></div> }
+            @if (_data.BestSellers.Count == 0) { <p class="empty-state">Chưa có sản phẩm được bán trong hôm nay.</p> }
+        </div>
+    </section>
+}
+@code {
+    private DashboardSnapshot? _data;
+    private bool _loading = true;
+    private string? _error;
+    private static string Money(decimal v) => v.ToString("N0", CultureInfo.GetCultureInfo("vi-VN")) + " ₫";
+    private static string Status(string s) => s switch { "COMPLETED" => "Hoàn tất", "CANCELLED" => "Đã hủy", "PREPARING" => "Đang pha chế", _ => "Chờ xử lý" };
+    private List<DailyRevenue> Week => Enumerable.Range(0,7).Select(i=>TodayVietnam.AddDays(i-6)).Select(d=>_data?.Days.FirstOrDefault(x=>x.Date.Date==d.Date)??new DailyRevenue(d,0,0)).ToList();
+    private decimal MaxRevenue => Math.Max(1,Week.Max(x=>x.Revenue));
+    private static DateTime TodayVietnam => DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).Date;
+    protected override Task OnInitializedAsync() => Refresh();
+    private async Task Refresh()
+    {
+        _loading=true;_error=null;
+        try { _data=await Db.GetDashboardAsync(); }
+        catch(Exception) { _error="Không đọc được dashboard. Kiểm tra PostgreSQL, quyền tài khoản và bảng dữ liệu."; }
+        finally { _loading=false; }
+    }
+}

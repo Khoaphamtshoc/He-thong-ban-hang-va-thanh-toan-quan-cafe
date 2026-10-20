@@ -1,0 +1,3 @@
+/* Lớp giao diện chính được tập trung tại wwwroot/soft-sakura.css.
+   Không khai báo lại .sidebar, .menu, .brand ở CSS isolation. */
+#blazor-error-ui { display:none; }

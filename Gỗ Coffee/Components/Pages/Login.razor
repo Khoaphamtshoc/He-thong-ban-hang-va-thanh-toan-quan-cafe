@@ -1,0 +1,32 @@
+@page "/login"
+@layout EmptyLayout
+@using Microsoft.AspNetCore.Components
+
+<PageTitle>Đăng nhập · Gỗ Coffee</PageTitle>
+<div class="login-shell">
+    <section class="login-visual">
+        <a class="brand login-brand" href="/login"><span class="brand-mark" aria-hidden="true">✿</span><span><b>Gỗ</b><small>COFFEE</small></span></a>
+        <div class="login-image"><div class="login-blur blur-one"></div><div class="login-blur blur-two"></div><div class="login-art-center"><div class="login-cup">☕</div><span class="login-flower">✿</span></div><div class="image-caption"><i></i> GỖ COFFEE · QUẢN LÝ DỄ DÀNG</div></div>
+        <div class="login-quote"><span>“</span><p>Một chút bình yên, một ly cà phê ngon.</p><small>GỖ COFFEE · EVERYDAY MOMENTS</small></div>
+    </section>
+    <section class="login-form-side">
+        <div class="login-form-wrap">
+            <span class="login-welcome">CHÀO MỪNG QUAY LẠI ✿</span>
+            <h1>Đăng nhập hệ thống</h1>
+            <p>Quản lý cửa hàng đơn giản và thuận tiện mỗi ngày.</p>
+            @if (Error == "invalid") { <div class="login-error" role="alert">Email hoặc mật khẩu không đúng, hoặc tài khoản bị khóa.</div> }
+            @if (Error == "database") { <div class="login-error" role="alert">Không kết nối được PostgreSQL. Kiểm tra dịch vụ, database và User Secrets.</div> }
+            <form method="post" action="/auth/login">
+                <AntiforgeryToken />
+                <label class="form-label" for="username">EMAIL ĐĂNG NHẬP</label>
+                <div class="login-input-wrap"><span>✉</span><input id="username" name="username" type="email" placeholder="admin@moc.coffee" autocomplete="username" required maxlength="150" /></div>
+                <label class="form-label" for="password">MẬT KHẨU</label>
+                <div class="login-input-wrap"><span>♙</span><input id="password" name="password" type="password" placeholder="Mật khẩu" autocomplete="current-password" required /></div>
+                <button type="submit" class="button button-primary login-button"><span>Đăng nhập</span><span>→</span></button>
+            </form>
+            <p class="login-help">Không có cơ chế bỏ qua mật khẩu. Hỏi quản trị viên để được cấp tài khoản.</p>
+        </div>
+        <div class="login-bottom">Gỗ Coffee · Hệ thống nội bộ</div>
+    </section>
+</div>
+@code { [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; } }

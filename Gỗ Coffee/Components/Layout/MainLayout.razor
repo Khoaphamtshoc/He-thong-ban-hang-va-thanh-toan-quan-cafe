@@ -1,0 +1,45 @@
+@inherits LayoutComponentBase
+@using System.Security.Claims
+@inject NavigationManager Navigation
+<div class="app-shell">
+    <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Mở hoặc đóng menu" />
+    <label for="nav-toggle" class="mobile-backdrop" aria-hidden="true"></label>
+    <aside class="sidebar">
+        <AuthorizeView Context="brandIdentity"><Authorized>
+            <a class="brand" href="@(brandIdentity.User.IsInRole("STAFF") ? "/sales" : brandIdentity.User.IsInRole("WAREHOUSE") ? "/inventory" : "/dashboard")"><span class="brand-mark" aria-hidden="true">✿</span><span><b>Gỗ</b><small>COFFEE</small></span></a>
+        </Authorized><NotAuthorized><a class="brand" href="/login"><span class="brand-mark" aria-hidden="true">✿</span><span><b>Gỗ</b><small>COFFEE</small></span></a></NotAuthorized></AuthorizeView>
+        <div class="side-label">CHỨC NĂNG QUẢN LÝ</div>
+        <nav class="menu">
+            <AuthorizeView Roles="ADMIN,MANAGER"><a href="/dashboard" class="@(Active("dashboard") ? "active" : "")"><span>◫</span> Tổng quan</a></AuthorizeView>
+            <AuthorizeView Roles="ADMIN,MANAGER,STAFF"><a href="/sales" class="@(Active("sales") ? "active" : "")"><span>＋</span> Bán hàng</a><a href="/orders" class="@(Active("orders") ? "active" : "")"><span>▤</span> Đơn hàng</a></AuthorizeView>
+            <AuthorizeView Roles="ADMIN,MANAGER"><a href="/products" class="@(Active("products") ? "active" : "")"><span>◉</span> Thực đơn</a></AuthorizeView>
+            <AuthorizeView Roles="ADMIN,MANAGER,WAREHOUSE"><a href="/inventory" class="@(Active("inventory") ? "active" : "")"><span>▥</span> Kho nguyên liệu</a></AuthorizeView>
+            <AuthorizeView Roles="ADMIN,MANAGER"><a href="/reports" class="@(Active("reports") ? "active" : "")"><span>⌁</span> Doanh thu</a></AuthorizeView>
+            <AuthorizeView Roles="ADMIN"><a href="/employees" class="@(Active("employees") ? "active" : "")"><span>♙</span> Nhân viên</a></AuthorizeView>
+        </nav>
+        <div class="sidebar-bottom"><AuthorizeView Context="identity">
+            <Authorized>
+                <div class="profile"><div class="avatar">@Initials(identity.User.Identity?.Name)</div><div class="profile-info"><b>@identity.User.Identity?.Name</b><small>@identity.User.FindFirst(ClaimTypes.Role)?.Value</small></div>
+                <form method="post" action="/auth/logout"><AntiforgeryToken /><button type="submit" class="icon-button" title="Đăng xuất">⎋</button></form></div>
+            </Authorized>
+            <NotAuthorized><a class="button button-primary" href="/login">Đăng nhập</a></NotAuthorized>
+        </AuthorizeView></div>
+    </aside>
+    <main class="main-area">
+        <header class="topbar">
+            <div class="topbar-left">
+                <label for="nav-toggle" class="nav-toggle-button" aria-label="Mở menu điều hướng"><span>☰</span></label>
+                <div class="breadcrumbs">Gỗ Coffee <span>/</span> <b>@PageName</b></div>
+            </div>
+            <div class="top-actions"><span class="system-pill"><i></i> Hệ thống nội bộ</span><span class="today">@DateTime.Now.ToString("dd/MM/yyyy")</span><AuthorizeView Context="account"><Authorized><span class="avatar top-avatar">@Initials(account.User.Identity?.Name)</span></Authorized></AuthorizeView></div>
+        </header>
+        <section class="page-content">@Body</section>
+    </main>
+</div>
+<div id="blazor-error-ui">Có lỗi xảy ra. <a href="." class="reload">Tải lại</a></div>
+@code {
+    private string Path => Navigation.ToBaseRelativePath(Navigation.Uri).Split('?')[0].Trim('/').ToLowerInvariant();
+    private bool Active(string route) => Path == route || (route == "dashboard" && Path == "");
+    private string PageName => Path switch { "" or "dashboard" => "Tổng quan", "sales" => "Bán hàng", "orders" => "Đơn hàng", "products" => "Thực đơn", "inventory" => "Kho nguyên liệu", "reports" => "Doanh thu", "employees" => "Nhân viên", _ => "Gỗ Coffee" };
+    private static string Initials(string? name) => string.IsNullOrWhiteSpace(name) ? "GC" : string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).TakeLast(2).Select(s => char.ToUpperInvariant(s[0])));
+}
