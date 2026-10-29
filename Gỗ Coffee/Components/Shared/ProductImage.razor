@@ -1,0 +1,25 @@
+@if (!string.IsNullOrWhiteSpace(Source) && !_failed)
+{
+    <img class="@Class" src="@Source" alt="@Name" loading="lazy" decoding="async" @onerror="()=>_failed=true" />
+}
+else
+{
+    <span class="@Class product-image-placeholder" role="img" aria-label="@($"Chưa có ảnh {Name}")" title="Chưa có ảnh món">◫</span>
+}
+
+@code {
+    [Parameter] public string? Source { get; set; }
+    [Parameter] public string Name { get; set; } = "món";
+    [Parameter] public string Class { get; set; } = "product-image";
+    private string? _previousSource;
+    private bool _failed;
+
+    protected override void OnParametersSet()
+    {
+        if (!string.Equals(_previousSource,Source,StringComparison.Ordinal))
+        {
+            _previousSource=Source;
+            _failed=false;
+        }
+    }
+}

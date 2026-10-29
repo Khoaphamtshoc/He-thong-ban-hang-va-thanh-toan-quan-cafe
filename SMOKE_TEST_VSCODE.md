@@ -17,5 +17,9 @@
 13. Dashboard và Reports cập nhật số liệu theo đơn thật; xuất CSV bằng nút Xuất CSV.
 14. Admin khóa tài khoản nhân viên, tài khoản bị từ chối sau đăng nhập lại; không thể tự khóa tài khoản đang dùng.
 15. Đóng tab/tải lại trang vẫn còn cookie đăng nhập, bấm Đăng xuất thì trang quản trị không còn truy cập được.
+16. Admin/Quản lý vào Thực đơn > Công thức, lưu định lượng rồi mở lại để xác nhận; nhân viên không được sửa công thức. Với dữ liệu demo, chạy thêm `database/demo_recipes.sql` sau schema.
+17. Bán một món có công thức: kiểm tra tồn giảm đúng và có phiếu `EXPORT` ghi mã đơn. Thử thiếu nguyên liệu: không phát sinh đơn/thanh toán/phiếu xuất dở dang. Đổi trạng thái đơn không trừ kho lần nữa.
+18. Trang Bán hàng có một ô Bàn; Ctrl+K chuyển tới tìm món, F4 mở xác nhận khi giỏ có món, Escape đóng, F4 lần hai không tự thanh toán.
+19. Trang Đơn hàng: bộ đếm Đang pha chế/Hoàn tất/Đã hủy khớp trạng thái các hàng trong danh sách. Kiểm tra tranh tồn đồng thời và lỗi thanh toán bằng chương trình trong `tests/GoCoffee.IntegrationChecks` trên database thử riêng; xem `SUA_LOI_BAN_HANG_VA_KHO.md`.
 
 Nếu build lỗi, hãy sao chép **lỗi đầu tiên đầy đủ** từ Terminal; không chỉ gửi ảnh trang web trắng. Cần SDK .NET 10 để xác minh kết quả thực tế.

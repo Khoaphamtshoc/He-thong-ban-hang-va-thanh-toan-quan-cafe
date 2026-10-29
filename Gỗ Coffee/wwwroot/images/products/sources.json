@@ -1,0 +1,110 @@
+[
+  {
+    "product_code": "CF001",
+    "product_name": "Bạc xỉu",
+    "local_path": "/images/products/bac-xiu.png",
+    "source_page": "https://info.thecoffeehouse.com/collections/all",
+    "source_image": "https://cdn.hstatic.net/products/1000075078/bac_xiu_truyen_thong_2694ea6d85c047fa9a559c2a85f0e766_grande.png",
+    "retrieved_on": "2026-10-29",
+    "bytes": 312326
+  },
+  {
+    "product_code": "CF002",
+    "product_name": "Cà phê sữa đá",
+    "local_path": "/images/products/ca-phe-sua-da.png",
+    "source_page": "https://info.thecoffeehouse.com/collections/all",
+    "source_image": "https://cdn.hstatic.net/products/1000075078/ca_phe_phin_nau_da_73fed306bafb4f87b4cb44573c900388_grande.png",
+    "retrieved_on": "2026-10-29",
+    "bytes": 318217
+  },
+  {
+    "product_code": "CF003",
+    "product_name": "Espresso",
+    "local_path": "/images/products/espresso.jpg",
+    "source_page": "https://bahungchef.myharavan.com/",
+    "source_image": "https://product.hstatic.net/200000692281/product/expresso_bf15e4c6829f415e940f16cf1ef323bd_large.jpg",
+    "retrieved_on": "2026-10-29",
+    "bytes": 25806
+  },
+  {
+    "product_code": "CF004",
+    "product_name": "Latte kem muối",
+    "local_path": "/images/products/latte-kem-muoi.webp",
+    "source_page": "https://www.salted.cafe/cafe",
+    "source_image": "https://cdn.prod.website-files.com/6a5cd9dff204be1459f97d69/6ac4493bb10efde506d85036_6ac3b7f7750e5aba3844d5de_salted-coffee-latte.webp",
+    "retrieved_on": "2026-10-29",
+    "bytes": 254356
+  },
+  {
+    "product_code": "CF005",
+    "product_name": "Cold brew cam",
+    "local_path": "/images/products/cold-brew-cam.jpg",
+    "source_page": "https://www.happyfoodstube.com/orange-cold-brew-coffee/",
+    "source_image": "https://www.happyfoodstube.com/wp-content/uploads/2023/08/orange-cold-brew-9.jpg",
+    "retrieved_on": "2026-10-29",
+    "bytes": 131908
+  },
+  {
+    "product_code": "TE001",
+    "product_name": "Trà đào cam sả",
+    "local_path": "/images/products/tra-dao-cam-sa.png",
+    "source_page": "https://info.thecoffeehouse.com/collections/all",
+    "source_image": "https://product.hstatic.net/1000075078/product/1737356280_tra-dao-cam-sa_9c46cceef5004e689b746e8ec0e47c34_grande.png",
+    "retrieved_on": "2026-10-29",
+    "bytes": 343544
+  },
+  {
+    "product_code": "TE002",
+    "product_name": "Matcha latte",
+    "local_path": "/images/products/matcha-latte.png",
+    "source_page": "https://info.thecoffeehouse.com/collections/all",
+    "source_image": "https://cdn.hstatic.net/products/1000075078/matcha_latte_tay_bac_da_d5ba2ffade1e4917ab810e626805bc18_grande.png",
+    "retrieved_on": "2026-10-29",
+    "bytes": 319721
+  },
+  {
+    "product_code": "TE003",
+    "product_name": "Trà ô long vải",
+    "local_path": "/images/products/tra-o-long-vai.png",
+    "source_page": "https://gongcha.com.vn/san-pham/tra-oolong-vai/",
+    "source_image": "https://gongcha.com.vn/wp-content/uploads/2018/02/Oolong-v%E1%BA%A3i-2.png",
+    "retrieved_on": "2026-10-29",
+    "bytes": 429576
+  },
+  {
+    "product_code": "DX001",
+    "product_name": "Matcha đá xay",
+    "local_path": "/images/products/matcha-da-xay.png",
+    "source_page": "https://info.thecoffeehouse.com/collections/all",
+    "source_image": "https://cdn.hstatic.net/products/1000075078/1746441845_matcha-frappe_afc0812f2f354f78ae5dc8a1a3120abc_grande.png",
+    "retrieved_on": "2026-10-29",
+    "bytes": 299190
+  },
+  {
+    "product_code": "DX002",
+    "product_name": "Chocolate đá xay",
+    "local_path": "/images/products/chocolate-da-xay.png",
+    "source_page": "https://info.thecoffeehouse.com/collections/all",
+    "source_image": "https://cdn.hstatic.net/products/1000075078/1746460836_choco-chip-frappe_b239b2a482344706a3b10c8b0bf98e2d_grande.png",
+    "retrieved_on": "2026-10-29",
+    "bytes": 284646
+  },
+  {
+    "product_code": "BK001",
+    "product_name": "Croissant bơ",
+    "local_path": "/images/products/croissant-bo.png",
+    "source_page": "https://info.thecoffeehouse.com/products/butter-croissant",
+    "source_image": "https://cdn.hstatic.net/products/1000075078/1737355250_croissant_b33eed005ff14450bfcf5a6ad0b168fd_master.png",
+    "retrieved_on": "2026-10-29",
+    "bytes": 278360
+  },
+  {
+    "product_code": "BK002",
+    "product_name": "Tiramisu",
+    "local_path": "/images/products/tiramisu.png",
+    "source_page": "https://info.thecoffeehouse.com/products/mousse-tiramisu",
+    "source_image": "https://cdn.hstatic.net/products/1000075078/1737355334_tiramisu_0f1359e2595c434b993466be204842b2_master.png",
+    "retrieved_on": "2026-10-29",
+    "bytes": 328343
+  }
+]

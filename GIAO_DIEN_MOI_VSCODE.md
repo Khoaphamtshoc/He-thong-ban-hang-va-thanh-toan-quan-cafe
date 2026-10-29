@@ -14,7 +14,7 @@ Không dùng Three.js, WebGL, video nền, API AI, thư viện giao diện mới
 
 - `Gỗ Coffee/wwwroot/soft-sakura.css`: **toàn bộ CSS giao diện mới**, tách riêng để dễ sửa.
 - `Gỗ Coffee/wwwroot/sakura-branch.svg`: minh họa hoa anh đào bằng SVG (ảnh vector).
-- `Gỗ Coffee/wwwroot/ui.js`: chỉ quản lý thao tác đóng menu điện thoại.
+- `Gỗ Coffee/wwwroot/ui.js`: đóng menu điện thoại và phím tắt Bán hàng (Ctrl/Cmd+K, F4, Escape).
 - `Gỗ Coffee/Components/Pages/Dashboard.razor`: banner mới, vẫn lấy thống kê từ PostgreSQL.
 - `Gỗ Coffee/Components/Pages/Login.razor`: nội dung và màu sắc đăng nhập.
 - `Gỗ Coffee/Components/Layout/MainLayout.razor`: thanh menu và nút mở menu điện thoại.
@@ -52,4 +52,4 @@ Không dùng Three.js, WebGL, video nền, API AI, thư viện giao diện mới
 - Thử cửa sổ rộng và hẹp (mô phỏng màn hình điện thoại), mở/đóng menu.
 - Thử tải lại trang xem dữ liệu còn được lưu trong PostgreSQL.
 
-**Tình trạng xác minh:** Kiểm tra được cú pháp CSS/JavaScript/SVG; môi trường tạo gói không có .NET 10 SDK và trình duyệt thử nghiệm bị chặn tải trang, nên **chưa thể khẳng định đã build và kiểm thử giao diện thực chạy**. Bạn cần làm checklist trên máy Windows của mình.
+**Tình trạng xác minh:** Bản sửa ngày 28/10/2026 đã build và thử trên Windows với .NET 10/PostgreSQL 18, bao gồm giao diện công thức, phím tắt, bộ đếm và thanh toán có trừ kho. Phạm vi và cách chạy kiểm tra tích hợp nằm trong `SUA_LOI_BAN_HANG_VA_KHO.md`; vẫn cần hoàn thành các tình huống còn lại trong checklist trước khi nộp.

@@ -45,7 +45,7 @@ else if (_data is not null)
     </div>
     <section class="surface popularity-panel dashboard-popularity"><div class="surface-heading"><div><h2>Món bán chạy hôm nay</h2><p>Thống kê từ chi tiết đơn hàng</p></div><a class="text-link" href="/products">Thực đơn →</a></div>
         <div class="popular-list">
-            @foreach (var item in _data.BestSellers) { <div class="popular-item"><div class="drink-thumb drink-coffee">☕</div><div class="popular-copy"><b>@item.Name</b><small>@item.Category</small></div><span class="popular-count">@item.Quantity <small>món</small></span><b class="popular-sales">@Money(item.Revenue)</b></div> }
+            @foreach (var item in _data.BestSellers) { <div class="popular-item"><div class="drink-thumb"><ProductImage Source="@item.ImageUrl" Name="@item.Name" Class="popular-product-photo" /></div><div class="popular-copy"><b>@item.Name</b><small>@item.Category</small></div><span class="popular-count">@item.Quantity <small>món</small></span><b class="popular-sales">@Money(item.Revenue)</b></div> }
             @if (_data.BestSellers.Count == 0) { <p class="empty-state">Chưa có sản phẩm được bán trong hôm nay.</p> }
         </div>
     </section>

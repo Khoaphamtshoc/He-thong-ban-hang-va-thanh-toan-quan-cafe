@@ -24,6 +24,8 @@ Trong pgAdmin 4, tạo database `cafe_pos` (Encoding `UTF8`). Mở **Query Tool*
 
 Nếu PostgreSQL đang dùng database có sẵn từ bản cũ, **sao lưu trước khi chạy lại SQL**. SQL sửa các hàng dữ liệu demo bị thiếu; mật khẩu plaintext cũ sẽ tự nâng sang PBKDF2 sau một lần đăng nhập thành công.
 
+Để thử tính năng tự trừ kho với dữ liệu mẫu, chạy thêm `database/demo_recipes.sql` trong Query Tool của `cafe_pos`. Đây là **công thức minh họa chỉ dùng demo**, bổ sung nguyên liệu mẫu và công thức cho 12 món, không ghi đè công thức hoặc tồn kho đã có. Admin/Quản lý chỉnh định lượng tại **Thực đơn > Công thức**. Món chưa có công thức chưa được chọn để bán; thiếu nguyên liệu sẽ chặn thanh toán. Xem `SUA_LOI_BAN_HANG_VA_KHO.md`.
+
 ### Bước 3. Lưu mật khẩu database an toàn
 
 Mở VS Code vào **thư mục gốc đã giải nén** và mở Terminal PowerShell, chạy:
@@ -71,10 +73,13 @@ Các trang có `[Authorize(Roles=...)]`. Server dùng ASP.NET Core Cookie Authen
 
 - Dashboard: đơn hàng, doanh thu trong ngày, món bán chạy, tồn kho thấp.
 - Báo cáo: thống kê từ PostgreSQL theo 7/30/90 ngày, xuất CSV.
-- Sản phẩm: xem (bao gồm món đã ngừng), thêm, sửa, ngừng bán (không xóa lịch sử đơn).
+- Sản phẩm: xem (bao gồm món đã ngừng), thêm, sửa, ngừng bán và quản lý công thức/định lượng (không xóa lịch sử đơn).
 - Kho: xem nguyên liệu, nhập tồn kho và ghi `inventory_transactions` trong transaction.
 - Nhân viên: tạo tài khoản có mật khẩu tạm, sửa thông tin/vai trò, khóa/mở tài khoản (không xóa lịch sử).
-- Bán hàng: món/giá đọc từ DB, tạo đơn + thanh toán trong transaction (thu ngân ghi nhận thanh toán thủ công, **không tích hợp cổng thanh toán**).
+- Bán hàng: món/giá đọc từ DB, kiểm tra nguyên liệu và lưu đơn + thanh toán + trừ tồn + phiếu xuất kho trong cùng transaction. Thiếu nguyên liệu hoặc thanh toán lỗi sẽ không lưu một phần giao dịch (thu ngân ghi nhận thanh toán thủ công, **không tích hợp cổng thanh toán**).
+- Phím tắt ở Bán hàng: **Ctrl+K** (hoặc Cmd+K) tìm món, **F4** mở xác nhận thanh toán, **Escape** đóng xác nhận. F4 không tự ghi nhận thanh toán.
+- Ảnh thực đơn: 12 món demo có ảnh minh họa tải từ Internet, lưu trong `Gỗ Coffee/wwwroot/images/products/` và đọc đường dẫn từ `products.image_url`. Script SQL khởi tạo mới đã điền đường dẫn; database cũ chạy thêm `database/demo_product_images.sql`. Script giữ nguyên ảnh đã thiết lập. Nguồn ảnh có trong `Gỗ Coffee/wwwroot/images/products/SOURCES.md`.
+- Giỏ hàng đã bỏ ô Khách hàng/Khách lẻ không có thao tác; phần đầu giỏ hiển thị bàn và tổng số món theo số lượng đang chọn.
 - Đơn hàng: đọc DB, cập nhật trạng thái. **Đơn đã thanh toán không được tự hủy** vì chưa xây quy trình hoàn tiền.
 
 ### Một số tình huống lỗi thường gặp
@@ -88,4 +93,4 @@ Các trang có `[Authorize(Roles=...)]`. Server dùng ASP.NET Core Cookie Authen
 
 ### Ranh giới kiểm thử
 
-Các chỉnh sửa đã được kiểm tra cấu trúc/tĩnh trong môi trường tạo bản ZIP. Môi trường này **không có dotnet SDK và dịch vụ PostgreSQL đang chạy**, nên không thể xác nhận `dotnet build`, đăng nhập cookie hay chạy end-to-end. Cần chạy 3 lệnh Bước 4 và test các vai trò trên máy Windows thực tế. Không nên xem đây là xác nhận hệ thống đã hoàn hảo trong mọi môi trường.
+Ngày 28/10/2026 đã build thành công trên Windows bằng .NET SDK 10.0.403 và PostgreSQL 18.6 (0 lỗi, 0 cảnh báo), đạt 39 kiểm tra HTTP cho đăng nhập/phân quyền và 14 kiểm tra tích hợp giao dịch kho trên database thử riêng. Đã thử trên trình duyệt việc sửa công thức, phím tắt, bộ đếm trạng thái và thanh toán có trừ kho. Đây là phạm vi kiểm thử cụ thể, không phải xác nhận hệ thống không còn lỗi trong mọi môi trường. Xem `SUA_LOI_BAN_HANG_VA_KHO.md` để chạy lại kiểm tra kho.

@@ -9,8 +9,8 @@
 @if(_toast is not null){<div class="toast-message">✓ @_toast</div>}
 <div class="menu-stats"><div class="surface mini-stat"><span>Tổng món</span><b>@_items.Count</b></div><div class="surface mini-stat"><span>Đang bán</span><b>@_items.Count(p=>p.Active)</b></div><div class="surface mini-stat"><span>Ngừng bán</span><b>@_items.Count(p=>!p.Active)</b></div></div>
 <section class="surface management-panel"><div class="management-toolbar"><div class="search-box compact-search"><span>⌕</span><input placeholder="Tìm tên hoặc mã món" @bind="_search" @bind:event="oninput" /></div><select class="select-control" @bind="_filter"><option value="all">Tất cả trạng thái</option><option value="active">Đang bán</option><option value="inactive">Ngừng bán</option></select><button class="button button-outline" @onclick="Reload">↻ Làm mới</button></div>
-<div class="table-scroll"><table class="data-table"><thead><tr><th>MÃ</th><th>TÊN MÓN</th><th>DANH MỤC</th><th>GIÁ</th><th>TRẠNG THÁI</th><th>THAO TÁC</th></tr></thead><tbody>
-@foreach(var p in Filtered){<tr><td class="muted-cell">@p.Code</td><td><b>@p.Name</b><small class="table-secondary">@p.Description</small></td><td>@p.Category</td><td class="strong-cell">@Money(p.Price)</td><td><span class="status @(p.Active?"status-done":"status-off")">@(p.Active?"Đang bán":"Ngừng bán")</span></td><td><button class="button button-outline" @onclick="()=>Edit(p)">Sửa</button> <button class="button button-outline" disabled="@(!p.Active)" @onclick="()=>Deactivate(p)">Ngừng bán</button></td></tr>}
+<div class="table-scroll"><table class="data-table"><thead><tr><th>MÃ</th><th>TÊN MÓN</th><th>DANH MỤC</th><th>GIÁ</th><th>TRẠNG THÁI</th><th>CÔNG THỨC</th><th>THAO TÁC</th></tr></thead><tbody>
+@foreach(var p in Filtered){<tr><td class="muted-cell">@p.Code</td><td><div class="product-name-cell"><ProductImage Source="@p.ImageUrl" Name="@p.Name" Class="table-product-photo" /><div><b>@p.Name</b><small class="table-secondary">@p.Description</small></div></div></td><td>@p.Category</td><td class="strong-cell">@Money(p.Price)</td><td><span class="status @(p.Active?"status-done":"status-off")">@(p.Active?"Đang bán":"Ngừng bán")</span></td><td><span class="status @(p.RecipeCount>0?"status-done":"status-warning")">@(p.RecipeCount>0?$"{p.RecipeCount} nguyên liệu":"Chưa thiết lập")</span></td><td><button class="button button-outline" @onclick="()=>Edit(p)">Sửa</button> <button class="button button-outline" @onclick="()=>EditRecipe(p)">Công thức</button> <button class="button button-outline" disabled="@(!p.Active)" @onclick="()=>Deactivate(p)">Ngừng bán</button></td></tr>}
 </tbody></table></div><div class="table-footer">Hiển thị @Filtered.Count() / @_items.Count sản phẩm</div></section>
 @if(_editing)
 {
@@ -24,11 +24,52 @@
         <div class="modal-actions"><button class="button button-outline" @onclick="()=>_editing=false">Hủy</button><button class="button button-primary" disabled="@_saving" @onclick="Save">@(_saving?"Đang lưu...":"Lưu sản phẩm")</button></div>
     </section></div>
 }
+@if(_recipeProduct is not null)
+{
+    <div class="modal-backdrop" @onclick="CloseRecipe">
+        <section class="checkout-modal recipe-modal" role="dialog" aria-modal="true" aria-labelledby="recipe-title" @onclick:stopPropagation="true">
+            <button class="modal-close" aria-label="Đóng công thức" disabled="@_savingRecipe" @onclick="CloseRecipe">×</button>
+            <h2 id="recipe-title">Công thức · @_recipeProduct.Name</h2>
+            <p>Định lượng cho một phần, theo đơn vị đang quản lý trong kho. Ví dụ: 18 g = 0,018 kg; 100 ml = 0,1 L.</p>
+            @if(_recipeError is not null){<div class="login-error" role="alert">@_recipeError</div>}
+            <fieldset class="recipe-fields" disabled="@_savingRecipe">
+                <div class="recipe-lines">
+                    @foreach(var line in _recipeLines)
+                    {
+                        <div class="recipe-line" @key="line">
+                            <div><label class="form-label" for="@($"recipe-ingredient-{line.Key}")">NGUYÊN LIỆU</label>
+                            <select id="@($"recipe-ingredient-{line.Key}")" class="form-input" @bind="line.IngredientId">
+                                <option value="0">Chọn nguyên liệu</option>
+                                @foreach(var ingredient in _recipeIngredients){<option value="@ingredient.Id">@ingredient.Name (@ingredient.Unit)</option>}
+                            </select></div>
+                            <div><label class="form-label" for="@($"recipe-quantity-{line.Key}")">LƯỢNG / PHẦN</label>
+                            <input id="@($"recipe-quantity-{line.Key}")" class="form-input" type="number" min="0.001" max="100000" step="0.001" @bind="line.Quantity" @bind:event="oninput" /></div>
+                            <button class="button button-outline recipe-remove" aria-label="Xóa nguyên liệu khỏi công thức" @onclick="()=>_recipeLines.Remove(line)">×</button>
+                        </div>
+                    }
+                </div>
+                <button class="button button-outline" @onclick="AddRecipeLine">＋ Thêm nguyên liệu</button>
+            </fieldset>
+            <div class="modal-actions"><button class="button button-outline" disabled="@_savingRecipe" @onclick="CloseRecipe">Hủy</button><button class="button button-primary" disabled="@_savingRecipe" @onclick="SaveRecipe">@(_savingRecipe?"Đang lưu...":"Lưu công thức")</button></div>
+        </section>
+    </div>
+}
 @code {
     private List<ProductRow> _items=[];private List<CategoryRow> _categories=[];
     private string _search="",_filter="all",_code="",_name="",_description="";
     private long _id,_categoryId;private decimal _price;private bool _active=true,_editing,_saving;
     private string? _error,_toast;
+    private ProductRow? _recipeProduct;
+    private List<IngredientRow> _recipeIngredients=[];
+    private List<EditableRecipeLine> _recipeLines=[];
+    private string? _recipeError;
+    private bool _savingRecipe;
+    private sealed class EditableRecipeLine
+    {
+        public Guid Key { get; }=Guid.NewGuid();
+        public long IngredientId { get; set; }
+        public decimal Quantity { get; set; }=0.001m;
+    }
     private IEnumerable<ProductRow> Filtered=>_items.Where(p=>(p.Code.Contains(_search,StringComparison.OrdinalIgnoreCase)||p.Name.Contains(_search,StringComparison.OrdinalIgnoreCase))&&(_filter=="all"||(_filter=="active"?p.Active:!p.Active)));
     private static string Money(decimal price)=>price.ToString("N0",CultureInfo.GetCultureInfo("vi-VN"))+" ₫";
     protected override Task OnInitializedAsync()=>Reload();
@@ -37,4 +78,33 @@
     private void Edit(ProductRow p){_id=p.Id;_code=p.Code;_name=p.Name;_description=p.Description??"";_price=p.Price;_active=p.Active;_categoryId=p.CategoryId;_editing=true;_error=null;}
     private async Task Save(){if(_saving)return;_saving=true;try{await Db.SaveProductAsync(_id,_code,_name,_description,_categoryId,_price,_active);_editing=false;await Reload();_toast="Đã lưu sản phẩm vào PostgreSQL.";}catch(Exception ex){_error=$"Không lưu được sản phẩm: {ex.Message}";}finally{_saving=false;}}
     private async Task Deactivate(ProductRow p){try{await Db.DeactivateProductAsync(p.Id);await Reload();_toast=$"Đã ngừng bán {p.Name}.";}catch(Exception ex){_error=ex.Message;}}
+    private async Task EditRecipe(ProductRow product)
+    {
+        try
+        {
+            _recipeIngredients=await Db.GetIngredientsAsync();
+            var recipe=await Db.GetRecipeAsync(product.Id);
+            _recipeLines=recipe.Select(r=>new EditableRecipeLine{IngredientId=r.IngredientId,Quantity=r.Quantity}).ToList();
+            // Keep inactive recipe ingredients visible so a manager can replace them explicitly.
+            foreach(var ingredient in recipe.Where(r=>!r.Active))
+                _recipeIngredients.Add(new(ingredient.IngredientId,"","[Ngừng dùng] "+ingredient.Name,"","",ingredient.Unit,0,0));
+            if(_recipeLines.Count==0)AddRecipeLine();
+            _recipeError=null;_recipeProduct=product;
+        }
+        catch(Exception ex){_error=$"Không tải được công thức: {ex.Message}";}
+    }
+    private void AddRecipeLine()=>_recipeLines.Add(new());
+    private void CloseRecipe(){if(!_savingRecipe)_recipeProduct=null;}
+    private async Task SaveRecipe()
+    {
+        if(_savingRecipe||_recipeProduct is null)return;
+        _savingRecipe=true;_recipeError=null;
+        try
+        {
+            await Db.SaveRecipeAsync(_recipeProduct.Id,_recipeLines.Select(l=>new RecipeLine(l.IngredientId,l.Quantity)).ToList());
+            _recipeProduct=null;await Reload();_toast="Đã lưu công thức. Khi thanh toán, nguyên liệu sẽ được trừ theo định lượng này.";
+        }
+        catch(Exception ex){_recipeError=ex.Message;}
+        finally{_savingRecipe=false;}
+    }
 }

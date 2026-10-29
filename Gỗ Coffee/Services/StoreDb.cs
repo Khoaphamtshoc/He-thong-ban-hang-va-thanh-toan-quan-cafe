@@ -6,15 +6,17 @@ using Npgsql;
 
 namespace CuaHangTienLoi.Web.Services;
 
-public sealed record MenuProduct(long Id, string Code, string Name, string? Description, string Category, decimal Price, bool Active);
-public sealed record ProductRow(long Id, string Code, string Name, string? Description, long CategoryId, string Category, decimal Price, bool Active);
+public sealed record MenuProduct(long Id, string Code, string Name, string? Description, string Category, decimal Price, bool Active, bool HasRecipe, string? ImageUrl = null);
+public sealed record ProductRow(long Id, string Code, string Name, string? Description, long CategoryId, string Category, decimal Price, bool Active, int RecipeCount, string? ImageUrl = null);
 public sealed record CategoryRow(long Id, string Name);
 public sealed record CheckoutLine(long ProductId, decimal Quantity, string? Note);
+public sealed record RecipeLine(long IngredientId, decimal Quantity);
+public sealed record RecipeIngredient(long IngredientId, string Name, string Unit, decimal Quantity, bool Active);
 public sealed record StoreOrder(long Id, string Code, string Customer, string Items, DateTimeOffset OrderedAt, decimal Total, string Payment, string Status);
 public sealed record IngredientRow(long Id, string Code, string Name, string Category, string Supplier, string Unit, decimal Stock, decimal Minimum);
 public sealed record EmployeeRow(long Id, string Name, string Email, string Role, string Status, DateTime Joined);
 public sealed record DailyRevenue(DateTime Date, int Count, decimal Revenue);
-public sealed record TopDrink(string Name, string Category, int Quantity, decimal Revenue);
+public sealed record TopDrink(string Name, string Category, int Quantity, decimal Revenue, string? ImageUrl = null);
 public sealed record DashboardSnapshot(decimal TodayRevenue, int TodayOrders, decimal AverageOrder, int ActiveProducts, int LowStock, List<DailyRevenue> Days, List<TopDrink> BestSellers, List<StoreOrder> RecentOrders);
 
 /// <summary>PostgreSQL data access/service layer. UI never sends raw SQL and server-side role checks protect writes.</summary>
@@ -52,12 +54,13 @@ public sealed class StoreDb(IConfiguration configuration, AuthenticationStatePro
         await RequireAsync("ADMIN", "MANAGER", "STAFF");
         await using var db = CreateConnection(); await db.OpenAsync(ct);
         await using var cmd = new NpgsqlCommand("""
-            SELECT p.product_id,p.product_code,p.product_name,p.description,c.category_name,p.sale_price,p.is_active
+            SELECT p.product_id,p.product_code,p.product_name,p.description,c.category_name,p.sale_price,p.is_active,
+                EXISTS(SELECT 1 FROM product_ingredients pi WHERE pi.product_id=p.product_id),p.image_url
             FROM products p JOIN categories c ON c.category_id=p.category_id
             WHERE p.is_active AND c.is_active ORDER BY c.category_name,p.product_name
             """, db);
         var result = new List<MenuProduct>(); await using var reader = await cmd.ExecuteReaderAsync(ct);
-        while (await reader.ReadAsync(ct)) result.Add(new(reader.GetInt64(0),reader.GetString(1),reader.GetString(2),reader.IsDBNull(3)?null:reader.GetString(3),reader.GetString(4),reader.GetDecimal(5),reader.GetBoolean(6)));
+        while (await reader.ReadAsync(ct)) result.Add(new(reader.GetInt64(0),reader.GetString(1),reader.GetString(2),reader.IsDBNull(3)?null:reader.GetString(3),reader.GetString(4),reader.GetDecimal(5),reader.GetBoolean(6),reader.GetBoolean(7),reader.IsDBNull(8)?null:reader.GetString(8)));
         return result;
     }
 
@@ -66,11 +69,12 @@ public sealed class StoreDb(IConfiguration configuration, AuthenticationStatePro
         await RequireAsync("ADMIN", "MANAGER");
         await using var db = CreateConnection(); await db.OpenAsync(ct);
         await using var cmd = new NpgsqlCommand("""
-            SELECT p.product_id,p.product_code,p.product_name,p.description,p.category_id,c.category_name,p.sale_price,p.is_active
+            SELECT p.product_id,p.product_code,p.product_name,p.description,p.category_id,c.category_name,p.sale_price,p.is_active,
+                (SELECT COUNT(*)::integer FROM product_ingredients pi WHERE pi.product_id=p.product_id),p.image_url
             FROM products p JOIN categories c ON c.category_id=p.category_id ORDER BY p.product_id DESC
             """, db);
         var items = new List<ProductRow>(); await using var r=await cmd.ExecuteReaderAsync(ct);
-        while(await r.ReadAsync(ct)) items.Add(new(r.GetInt64(0),r.GetString(1),r.GetString(2),r.IsDBNull(3)?null:r.GetString(3),r.GetInt64(4),r.GetString(5),r.GetDecimal(6),r.GetBoolean(7)));
+        while(await r.ReadAsync(ct)) items.Add(new(r.GetInt64(0),r.GetString(1),r.GetString(2),r.IsDBNull(3)?null:r.GetString(3),r.GetInt64(4),r.GetString(5),r.GetDecimal(6),r.GetBoolean(7),r.GetInt32(8),r.IsDBNull(9)?null:r.GetString(9)));
         return items;
     }
 
@@ -114,24 +118,117 @@ public sealed class StoreDb(IConfiguration configuration, AuthenticationStatePro
         if(await cmd.ExecuteNonQueryAsync(ct)==0)throw new InvalidOperationException("Sản phẩm không tồn tại.");
     }
 
+    public async Task<List<RecipeIngredient>> GetRecipeAsync(long productId, CancellationToken ct = default)
+    {
+        await RequireAsync("ADMIN", "MANAGER");
+        await using var db = CreateConnection();
+        await db.OpenAsync(ct);
+        await using var cmd = new NpgsqlCommand("""
+            SELECT i.ingredient_id,i.ingredient_name,i.unit,pi.quantity,i.is_active
+            FROM product_ingredients pi JOIN ingredients i ON i.ingredient_id=pi.ingredient_id
+            WHERE pi.product_id=@id ORDER BY i.ingredient_name
+            """, db);
+        cmd.Parameters.AddWithValue("id", productId);
+        var result = new List<RecipeIngredient>();
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+            result.Add(new(reader.GetInt64(0),reader.GetString(1),reader.GetString(2),reader.GetDecimal(3),reader.GetBoolean(4)));
+        return result;
+    }
+
+    public async Task SaveRecipeAsync(long productId, IReadOnlyCollection<RecipeLine> lines, CancellationToken ct = default)
+    {
+        await RequireAsync("ADMIN", "MANAGER");
+        if (lines.Count is < 1 or > 100 || lines.Any(l => l.IngredientId < 1 || l.Quantity <= 0 || l.Quantity > 100000 || decimal.Round(l.Quantity,3) != l.Quantity))
+            throw new ArgumentException("Công thức cần nguyên liệu với định lượng lớn hơn 0, tối đa 3 số lẻ và không quá 100.000 đơn vị.");
+        if (lines.Select(l => l.IngredientId).Distinct().Count() != lines.Count)
+            throw new ArgumentException("Mỗi nguyên liệu chỉ được xuất hiện một lần trong công thức.");
+        await using var db = CreateConnection();
+        await db.OpenAsync(ct);
+        await using var tx = await db.BeginTransactionAsync(ct);
+        // The same product lock is used by checkout, so an order sees one complete recipe.
+        await using (var product = new NpgsqlCommand("SELECT product_id FROM products WHERE product_id=@id FOR UPDATE", db, tx))
+        {
+            product.Parameters.AddWithValue("id", productId);
+            if (await product.ExecuteScalarAsync(ct) is null)
+                throw new InvalidOperationException("Món không tồn tại.");
+        }
+        foreach (var line in lines.OrderBy(l => l.IngredientId))
+        {
+            await using var ingredient = new NpgsqlCommand("SELECT is_active FROM ingredients WHERE ingredient_id=@id FOR SHARE", db, tx);
+            ingredient.Parameters.AddWithValue("id", line.IngredientId);
+            if (await ingredient.ExecuteScalarAsync(ct) is not true)
+                throw new InvalidOperationException("Công thức có nguyên liệu không tồn tại hoặc đã ngừng sử dụng.");
+        }
+        await using (var clear = new NpgsqlCommand("DELETE FROM product_ingredients WHERE product_id=@id", db, tx))
+        {
+            clear.Parameters.AddWithValue("id", productId);
+            await clear.ExecuteNonQueryAsync(ct);
+        }
+        foreach (var line in lines)
+        {
+            await using var insert = new NpgsqlCommand("INSERT INTO product_ingredients(product_id,ingredient_id,quantity) VALUES(@product,@ingredient,@qty)", db, tx);
+            insert.Parameters.AddWithValue("product", productId);
+            insert.Parameters.AddWithValue("ingredient", line.IngredientId);
+            insert.Parameters.AddWithValue("qty", line.Quantity);
+            await insert.ExecuteNonQueryAsync(ct);
+        }
+        await tx.CommitAsync(ct);
+    }
+
     public async Task<string> CreateOrderAsync(IReadOnlyCollection<CheckoutLine> lines,string paymentMethod,decimal vatRate,decimal discount,string? note,string? tableNo,CancellationToken ct=default)
     {
         var employeeId=await RequireAsync("ADMIN","MANAGER","STAFF");
-        if(lines.Count==0||lines.Count>100||lines.Any(l=>l.Quantity<=0||l.Quantity>100))throw new ArgumentException("Số món hoặc số lượng không hợp lệ.");
+        if(lines.Count==0||lines.Count>100||lines.Any(l=>l.ProductId<1||l.Quantity<=0||l.Quantity>100||decimal.Truncate(l.Quantity)!=l.Quantity))throw new ArgumentException("Số lượng món phải là số nguyên từ 1 đến 100.");
+        if(lines.GroupBy(l=>l.ProductId).Any(g=>g.Sum(l=>l.Quantity)>100))throw new ArgumentException("Mỗi món chỉ được tối đa 100 phần trong một đơn.");
+        if(lines.Any(l=>l.Note is { Length: > 255 }))throw new ArgumentException("Ghi chú từng món không được quá 255 ký tự.");
         if(discount<0||vatRate<0||vatRate>20)throw new ArgumentException("Thuế hoặc giảm giá không hợp lệ.");
-        if(tableNo is { Length: > 30 } || note is { Length: > 5000 }) throw new ArgumentException("Mã bàn hoặc ghi chú quá dài.");
         if(tableNo is { Length: > 30 } || note is { Length: > 5000 }) throw new ArgumentException("Mã bàn hoặc ghi chú quá dài.");
         var paymentCode=paymentMethod switch{"Tiền mặt"=>"CASH","Chuyển khoản"=>"BANK_TRANSFER","Thẻ"=>"CARD",_=>throw new ArgumentException("Phương thức thanh toán không hợp lệ.")};
         await using var db=CreateConnection();await db.OpenAsync(ct);
         await using var tx=await db.BeginTransactionAsync(ct);
         var prices=new Dictionary<long,decimal>();
-        foreach(var line in lines)
+        var requiredIngredients = new Dictionary<long,decimal>();
+        // Lock products and ingredients in a stable order to avoid deadlocks between tills.
+        foreach(var group in lines.GroupBy(l=>l.ProductId).OrderBy(g=>g.Key))
         {
-            await using var product=new NpgsqlCommand("SELECT sale_price FROM products WHERE product_id=@id AND is_active FOR UPDATE",db,tx);
-            product.Parameters.AddWithValue("id",line.ProductId);
-            var price=await product.ExecuteScalarAsync(ct);
-            if(price is not decimal p)throw new InvalidOperationException("Có món đã ngừng kinh doanh.");
-            prices[line.ProductId]=p;
+            await using var product=new NpgsqlCommand("""
+                SELECT p.sale_price,p.product_name FROM products p
+                JOIN categories c ON c.category_id=p.category_id
+                WHERE p.product_id=@id AND p.is_active AND c.is_active FOR UPDATE OF p
+                """,db,tx);
+            product.Parameters.AddWithValue("id",group.Key);
+            string productName;
+            await using (var reader = await product.ExecuteReaderAsync(ct))
+            {
+                if (!await reader.ReadAsync(ct)) throw new InvalidOperationException("Có món hoặc danh mục đã ngừng kinh doanh.");
+                prices[group.Key]=reader.GetDecimal(0);
+                productName=reader.GetString(1);
+            }
+            await using var recipe = new NpgsqlCommand("SELECT ingredient_id,quantity FROM product_ingredients WHERE product_id=@id ORDER BY ingredient_id",db,tx);
+            recipe.Parameters.AddWithValue("id",group.Key);
+            var hasRecipe=false;
+            await using (var reader = await recipe.ExecuteReaderAsync(ct))
+            {
+                while (await reader.ReadAsync(ct))
+                {
+                    hasRecipe=true;
+                    var ingredientId=reader.GetInt64(0);
+                    var needed=reader.GetDecimal(1)*group.Sum(l=>l.Quantity);
+                    requiredIngredients[ingredientId]=requiredIngredients.GetValueOrDefault(ingredientId)+needed;
+                }
+            }
+            if (!hasRecipe) throw new InvalidOperationException($"Món {productName} chưa có công thức. Nhờ quản lý cấu hình trong Thực đơn.");
+        }
+        foreach (var (ingredientId, needed) in requiredIngredients.OrderBy(x=>x.Key))
+        {
+            await using var stock = new NpgsqlCommand("SELECT ingredient_name,unit,current_stock,is_active FROM ingredients WHERE ingredient_id=@id FOR UPDATE",db,tx);
+            stock.Parameters.AddWithValue("id",ingredientId);
+            await using var reader = await stock.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync(ct) || !reader.GetBoolean(3))
+                throw new InvalidOperationException("Công thức có nguyên liệu đã ngừng sử dụng. Nhờ quản lý kiểm tra lại.");
+            if (reader.GetDecimal(2)<needed)
+                throw new InvalidOperationException($"Không đủ {reader.GetString(0)}: cần {needed:0.###} {reader.GetString(1)}, còn {reader.GetDecimal(2):0.###} {reader.GetString(1)}.");
         }
         var subtotal=lines.Sum(l=>prices[l.ProductId]*l.Quantity);
         var vat=decimal.Round(subtotal*vatRate/100m,2,MidpointRounding.AwayFromZero);
@@ -158,6 +255,22 @@ public sealed class StoreDb(IConfiguration configuration, AuthenticationStatePro
             item.Parameters.AddWithValue("qty",l.Quantity);item.Parameters.AddWithValue("price",prices[l.ProductId]);
             item.Parameters.AddWithValue("note",(object?)l.Note??DBNull.Value);item.Parameters.AddWithValue("total",prices[l.ProductId]*l.Quantity);
             await item.ExecuteNonQueryAsync(ct);
+        }
+        foreach (var (ingredientId,needed) in requiredIngredients.OrderBy(x=>x.Key))
+        {
+            await using var deduct = new NpgsqlCommand("""
+                UPDATE ingredients SET current_stock=current_stock-@qty,updated_at=NOW()
+                WHERE ingredient_id=@id AND is_active AND current_stock>=@qty
+                """,db,tx);
+            deduct.Parameters.AddWithValue("qty",needed);deduct.Parameters.AddWithValue("id",ingredientId);
+            if (await deduct.ExecuteNonQueryAsync(ct)!=1)throw new InvalidOperationException("Tồn kho vừa thay đổi. Vui lòng thử lại.");
+            await using var log = new NpgsqlCommand("""
+                INSERT INTO inventory_transactions(ingredient_id,employee_id,transaction_type,quantity,reference_note)
+                VALUES(@ingredient,@employee,'EXPORT',@qty,@reference)
+                """,db,tx);
+            log.Parameters.AddWithValue("ingredient",ingredientId);log.Parameters.AddWithValue("employee",employeeId);
+            log.Parameters.AddWithValue("qty",needed);log.Parameters.AddWithValue("reference",$"Xuất bán đơn {code}");
+            await log.ExecuteNonQueryAsync(ct);
         }
         await using var payment=new NpgsqlCommand("INSERT INTO payments(order_id,payment_method,amount,payment_status) VALUES(@order,@method,@total,'PAID')",db,tx);
         payment.Parameters.AddWithValue("order",orderId);payment.Parameters.AddWithValue("method",paymentCode);payment.Parameters.AddWithValue("total",total);
@@ -344,7 +457,7 @@ public sealed class StoreDb(IConfiguration configuration, AuthenticationStatePro
         await RequireAsync("ADMIN","MANAGER");
         await using var db=CreateConnection();await db.OpenAsync(ct);
         await using var cmd=new NpgsqlCommand("""
-            SELECT p.product_name,c.category_name,COALESCE(SUM(i.quantity),0)::integer,COALESCE(SUM(i.line_total),0)
+            SELECT p.product_name,c.category_name,COALESCE(SUM(i.quantity),0)::integer,COALESCE(SUM(i.line_total),0),p.image_url
             FROM order_items i JOIN orders o ON o.order_id=i.order_id AND o.order_status<>'CANCELLED'
                 JOIN products p ON p.product_id=i.product_id JOIN categories c ON c.category_id=p.category_id
             WHERE (o.ordered_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date=(NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date
@@ -352,7 +465,7 @@ public sealed class StoreDb(IConfiguration configuration, AuthenticationStatePro
             """,db);
         cmd.Parameters.AddWithValue("limit",Math.Clamp(limit,1,20));
         var result=new List<TopDrink>();await using var r=await cmd.ExecuteReaderAsync(ct);
-        while(await r.ReadAsync(ct))result.Add(new(r.GetString(0),r.GetString(1),r.GetInt32(2),r.GetDecimal(3)));
+        while(await r.ReadAsync(ct))result.Add(new(r.GetString(0),r.GetString(1),r.GetInt32(2),r.GetDecimal(3),r.IsDBNull(4)?null:r.GetString(4)));
         return result;
     }
 
